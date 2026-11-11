@@ -4,6 +4,8 @@ import { loadBundle } from "@/lib/proptech/server";
 import { PORTALS, type Portal } from "@/lib/proptech/types";
 
 export const dynamic = "force-dynamic";
+// The AI or portal work runs after the response (jobs.kick), inside this function's time.
+export const maxDuration = 300;
 type P = { params: Promise<{ id: string }> };
 
 export const POST = handle(async (req: Request, { params }: P) => {

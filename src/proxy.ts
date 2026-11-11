@@ -5,8 +5,8 @@ import { readSession, SESSION_COOKIE } from '@/lib/auth/session';
 // Twilio webhooks verify their own signature; the auth endpoint is how you sign in;
 // sign-up and invite links are for people who don't have an account yet.
 // /feeds/ are portal XML feeds (Bayut fetches them); the random token in the URL is their key.
-// /api/ext/ is the Chrome extension, which signs in with its own pairing token (checked in each route).
-const PUBLIC_PREFIXES = ['/api/auth', '/api/webhooks', '/api/signup', '/api/invite', '/feeds/', '/api/ext/'];
+// /api/proptech/cron checks CRON_SECRET itself. /api/ext/ is the Chrome extension, which signs in with its own pairing token (checked in each route).
+const PUBLIC_PREFIXES = ['/api/auth', '/api/webhooks', '/api/signup', '/api/invite', '/feeds/', '/api/ext/', '/api/proptech/cron'];
 const GUEST_PAGES = ['/login', '/signup', '/invite'];
 
 export function proxy(req: NextRequest) {

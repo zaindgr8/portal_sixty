@@ -117,25 +117,25 @@ export function ErrorBar({ error, onClose }: { error: string; onClose: () => voi
 
 type UploadedMedia = ListingBundle['media'][number];
 
-/** Upload one file with progress (fetch can't report upload progress, XHR can). */
-export function uploadFile(listingId: string, file: File | Blob, name: string, kind: string, extra: Record<string, string> = {}, onProgress?: (pct: number) => void) {
-  return new Promise<{ media: UploadedMedia }>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const fd = new FormData();
-    fd.append('file', file, name);
-    fd.append('kind', kind);
-    for (const [k, v] of Object.entries(extra)) fd.append(k, v);
-    xhr.open('POST', `/api/proptech/listings/${listingId}/media`);
-    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100)); };
-    xhr.onload = () => {
-      let data: { error?: string } = {};
-      try { data = JSON.parse(xhr.responseText); } catch { /* not json */ }
-      if (xhr.status >= 200 && xhr.status < 300) resolve(data as { media: UploadedMedia });
-      else reject(new Error(data.error || `Upload failed (${xhr.status})`));
-    };
+/**
+ * Upload one file with progress. The file goes straight to storage through a one-time link (the live portal
+ * can't take request bodies over 4.5 MB), then the portal checks it and records it.
+ */
+export async function uploadFile(listingId: string, file: File | Blob, name: string, kind: string, extra: Record<string, string> = {}, onProgress?: (pct: number) => void) {
+  const url = `/api/proptech/listings/${listingId}/media`;
+  const { path, uploadUrl } = await api<{ path: string; uploadUrl: string }>(url, { method: 'POST', json: { step: 'sign', kind, name, size: file.size } });
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest(); // fetch can't report upload progress, XHR can
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(Math.min(99, Math.round((e.loaded / e.total) * 100))); };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status}). Try again.`)));
     xhr.onerror = () => reject(new Error('Upload failed. Check your connection and try again.'));
-    xhr.send(fd);
+    xhr.send(file);
   });
+  const r = await api<{ media: UploadedMedia }>(url, { method: 'POST', json: { step: 'done', kind, name, path, ...extra } });
+  onProgress?.(100);
+  return r;
 }
 
 export const usd = (n: number) => (n < 0.01 ? `$${n.toFixed(4)}` : `$${n.toFixed(3)}`);

@@ -32,6 +32,18 @@ export async function putObject(workspaceId: string, path: string, data: Buffer 
   if (!res.ok) throw new StorageError(`Upload failed (${res.status}): ${(await res.text()).slice(0, 200)}`);
 }
 
+/**
+ * A one-time link the browser can PUT one file to, straight into storage. Vercel refuses request bodies
+ * over 4.5 MB, so photos and scans never pass through the portal's own server.
+ */
+export async function signUpload(workspaceId: string, path: string): Promise<string> {
+  assertOwned(workspaceId, path);
+  const res = await fetch(`${BASE}/storage/v1/object/upload/sign/${BUCKET}/${enc(path)}`, { method: "POST", headers: auth });
+  if (!res.ok) throw new StorageError(`Couldn't prepare the upload (${res.status}).`);
+  const { url } = (await res.json()) as { url: string };
+  return `${BASE}/storage/v1${url}`;
+}
+
 export async function getObject(workspaceId: string, path: string): Promise<Buffer> {
   assertOwned(workspaceId, path);
   const res = await fetch(`${BASE}/storage/v1/object/${BUCKET}/${enc(path)}`, { headers: auth, cache: "no-store" });

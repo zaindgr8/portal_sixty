@@ -1,4 +1,5 @@
 import "server-only";
+import { after } from "next/server";
 import { q, sb } from "../supabase";
 import { inWorkspace } from "../tenant/context";
 
@@ -27,7 +28,7 @@ export async function enqueue(ws: string, kind: JobKind, o: { listingId?: string
       run_at: new Date(Date.now() + (o.delayMs ?? 0)).toISOString(),
     },
   });
-  if (!o.delayMs) setTimeout(() => void tick(), 50); // start now rather than on the next tick
+  if (!o.delayMs) kick(); // start now rather than on the next tick
   return rows[0]?.id;
 }
 
@@ -68,27 +69,62 @@ const g2 = globalThis as typeof globalThis & { __ptOnFail?: (job: Job, msg: stri
 export function onJobFailure(fn: (job: Job, msg: string) => Promise<void>) { g2.__ptOnFail = fn; }
 const onFinalFailure = (job: Job, msg: string) => g2.__ptOnFail?.(job, msg) ?? Promise.resolve();
 
-export async function tick() {
-  const running = g.__ptRunning ?? 0;
-  const free = CONCURRENCY - running;
-  if (free <= 0) return;
+/** Claim what's due and start it. Returns the started jobs (already running). */
+async function claim(): Promise<Promise<void>[]> {
+  const free = CONCURRENCY - (g.__ptRunning ?? 0);
+  if (free <= 0) return [];
   let jobs: Job[];
   try {
     jobs = await sb<Job[]>("rpc/proptech_claim_jobs", { method: "POST", body: { n: free, lease_seconds: 180 } });
   } catch (err) {
     const m = err instanceof Error ? err.message : String(err);
     if (!/proptech_claim_jobs|PGRST202/.test(m)) console.error("[proptech:job] claim failed:", m.slice(0, 200));
-    return;
+    return [];
   }
-  for (const job of jobs) {
+  return jobs.map((job) => {
     g.__ptRunning = (g.__ptRunning ?? 0) + 1;
-    void run(job).finally(() => { g.__ptRunning = (g.__ptRunning ?? 1) - 1; });
+    return run(job).finally(() => { g.__ptRunning = (g.__ptRunning ?? 1) - 1; });
+  });
+}
+
+export async function tick() {
+  await claim();
+}
+
+/**
+ * Run due jobs until none are left or the time budget runs out, waiting for each batch. On Vercel nothing
+ * runs between requests, so this is what does the work: right after a request that queued a job (kick), when
+ * the listing page polls, and from the cron route for retries and delayed jobs.
+ */
+export async function drain(budgetMs = 240_000) {
+  const end = Date.now() + budgetMs;
+  let done = 0;
+  while (Date.now() < end) {
+    const started = await claim();
+    if (!started.length) {
+      if ((g.__ptRunning ?? 0) === 0) break;
+      await new Promise((r) => setTimeout(r, 1000)); // others still running here: wait, then look again
+      continue;
+    }
+    await Promise.all(started);
+    done += started.length;
+  }
+  return done;
+}
+
+/** Start work after the response is sent (keeps the serverless function alive until it's done). */
+export function kick(budgetMs?: number) {
+  try {
+    after(() => drain(budgetMs));
+  } catch {
+    setTimeout(() => void tick(), 50); // not inside a request (e.g. a job queuing a follow-up): the loop picks it up
   }
 }
 
 /** Start the worker once per server process (from instrumentation.ts). */
 export function startJobWorker() {
-  if (g.__ptTimer || process.env.PROPTECH_WORKER === "off") return;
+  // On Vercel the process sleeps between requests, so a timer can't be relied on: kick()/drain() do the work there.
+  if (g.__ptTimer || process.env.PROPTECH_WORKER === "off" || process.env.VERCEL) return;
   g.__ptTimer = setInterval(() => void tick(), TICK_MS);
   g.__ptTimer.unref?.();
   console.log("[proptech:job] worker started");

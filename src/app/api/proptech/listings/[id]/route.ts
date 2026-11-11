@@ -1,5 +1,6 @@
 import { guard, handle, json, fail } from "@/lib/proptech/access";
 import { loadBundle } from "@/lib/proptech/server";
+import { kick } from "@/lib/proptech/jobs";
 import { audit, deleteListing, getListing, getListingRow, listMediaRows, updateInputs, updateListing, isListingField, readOwner, sealOwner } from "@/lib/proptech/store";
 import { removeObjects } from "@/lib/proptech/storage";
 import { coerceValue } from "@/lib/proptech/schema";
@@ -7,13 +8,18 @@ import { missingQuestions } from "@/lib/proptech/questions";
 import { TONES, type ListingField } from "@/lib/proptech/types";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 type P = { params: Promise<{ id: string }> };
 
 export const GET = handle(async (req: Request, { params }: P) => {
   const c = await guard(req);
   if (c instanceof Response) return c;
   const b = await loadBundle(c, (await params).id);
-  return b ? json(b) : fail("Listing not found.", 404);
+  if (!b) return fail("Listing not found.", 404);
+  // While the page polls a busy listing, move its queued work along (retries, portal status checks).
+  const busy = b.listing.status === "processing" || b.listing.progress.step === "writing" || b.portals.some((p) => (p.status === "queued" || p.status === "submitted") && b.methods?.[p.portal] !== "extension");
+  if (busy) kick(45_000);
+  return json(b);
 });
 
 const PERMIT_FIELDS = new Set<ListingField>(["permit_number", "permit_expiry", "agency_orn", "agent_brn"]);

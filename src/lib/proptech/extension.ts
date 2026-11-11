@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getWorkspace, updateWorkspace, type Workspace } from "../tenant/workspaces";
 import { proptechOn } from "./access";
 
-// The Sixty Chrome extension signs in with a pairing token the agent copies from Portal Settings.
+// The Sixty Chrome extension signs in with a pairing token the agent copies from PropTech → Chrome extension.
 // Tokens are signed like session cookies (HMAC with SESSION_SECRET), last 90 days and can be revoked
 // per user ("Disconnect extension"), which bumps a timestamp saved in the workspace config.
 // They only open /api/ext/*: reading the agent's listings to post and reporting what happened.
@@ -60,10 +60,10 @@ export type ExtCtx = { user: ExtUser; ws: Workspace };
 export async function extGuard(req: Request): Promise<ExtCtx | Response> {
   const auth = req.headers.get("authorization") ?? "";
   const user = readExtensionToken(auth.replace(/^Bearer\s+/i, "").trim());
-  if (!user) return fail("The extension isn't connected. Pair it again from Portal Settings.", 401);
+  if (!user) return fail("The extension isn't connected. Pair it again from PropTech → Chrome extension in Sixty.", 401);
   const ws = await getWorkspace(user.workspace);
   if (!ws || ws.status !== "active") return fail("This workspace isn't active.", 403);
-  if (user.issuedAt <= revokedAt(ws, user.username)) return fail("This extension was disconnected. Pair it again from Portal Settings.", 401);
+  if (user.issuedAt <= revokedAt(ws, user.username)) return fail("This extension was disconnected. Pair it again from PropTech → Chrome extension in Sixty.", 401);
   if (!proptechOn(ws)) return fail("PropTech isn't enabled for this agency.", 403);
   return { user, ws };
 }

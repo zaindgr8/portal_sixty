@@ -5,8 +5,8 @@ import { portalJobFailed, runPortalJob } from "./publish";
 import { updateListing } from "./store";
 import type { Tone } from "./types";
 
-// Wires job kinds to their handlers and starts the worker. Imported once from instrumentation.ts.
-export function startProptechWorker() {
+// Wires job kinds to their handlers (safe to call more than once).
+export function registerProptechJobs() {
   registerJob("process_listing", async (job) => { if (job.listing_id) await processListing(job.workspace_id, job.listing_id); });
   registerJob("regenerate_copy", async (job) => { if (job.listing_id) await regenerateCopy(job.workspace_id, job.listing_id, job.payload.tone as Tone | undefined); });
   for (const k of ["portal_publish", "portal_update", "portal_unpublish", "portal_status"] as const) registerJob(k, runPortalJob);
@@ -16,5 +16,10 @@ export function startProptechWorker() {
     }
     await portalJobFailed(job, msg).catch(() => {});
   });
+}
+
+/** Register handlers and start the timer worker (not on Vercel). Called once from instrumentation.ts. */
+export function startProptechWorker() {
+  registerProptechJobs();
   startJobWorker();
 }

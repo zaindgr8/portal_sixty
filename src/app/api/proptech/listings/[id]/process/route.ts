@@ -4,6 +4,8 @@ import { geminiReady } from "@/lib/proptech/gemini";
 import { getListing, listMediaRows, updateInputs, updateListing } from "@/lib/proptech/store";
 
 export const dynamic = "force-dynamic";
+// The AI or portal work runs after the response (jobs.kick), inside this function's time.
+export const maxDuration = 300;
 type P = { params: Promise<{ id: string }> };
 
 // Start (or re-run) the AI step. Form A is required.
