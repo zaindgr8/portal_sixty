@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownWideNarrow, ArrowLeft, Bot, Building2, Check, CheckCheck, CheckCircle2, ChevronDown, Clock, FileText, Globe, Hand, Loader2,
-  Mail, MinusCircle, PanelRight, PlusCircle, RefreshCw, Search, Send, Smile, Sparkles, SquarePen, StickyNote, Target, Timer, TriangleAlert, User, UserPlus, Wallet, X,
+  Mail, MessageCircle, MinusCircle, PanelRight, PlusCircle, RefreshCw, Search, Send, Smile, Sparkles, SquarePen, StickyNote, Target, Timer, TriangleAlert, User, UserPlus, Wallet, X,
 } from "lucide-react";
 import { api, displayName, priorityRank, STAGE_META, timeAgo, useAgentName, useLive, waitingSince, waitTone } from "@/lib/whatsapp/client";
 import { LEAD_STAGES, type Agent, type Conversation, type Lead, type Message, type Note } from "@/lib/whatsapp/types";
@@ -23,9 +23,22 @@ const FILTERS = [
   { key: "ai", label: "AI" },
   { key: "manual", label: "Manual" },
   { key: "resolved", label: "Resolved" },
+] as const;
+// Channel is its own switch, so it combines with the filters above (e.g. Instagram + Unread).
+const CHANNELS = [
+  { key: "all", label: "All channels" },
   { key: "whatsapp", label: "WhatsApp" },
   { key: "instagram", label: "Instagram" },
 ] as const;
+type ChannelKey = (typeof CHANNELS)[number]["key"];
+function InstagramGlyph({ active }: { active: boolean }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={active ? "#e1306c" : "currentColor"} strokeWidth="2.2" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" />
+    </svg>
+  );
+}
+const channelOf = (c: { channel?: string }): ChannelKey => (c.channel === "instagram" ? "instagram" : "whatsapp");
 type FilterKey = (typeof FILTERS)[number]["key"];
 type View = "all" | "mine" | "unassigned";
 type Scoring = { gemini: boolean; model: string | null; running: boolean; total: number; done: number; failed: number; lastError?: string };
@@ -45,6 +58,7 @@ export default function Inbox() {
   const [selected, setSelected] = useState<string | null>(null);
   const [composing, setComposing] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [channel, setChannel] = useState<ChannelKey>("all");
   const [sort, setSort] = useState<"recent" | "priority">("recent");
   const [view, setView] = useState<View>("all");
   const [me, setMe] = useState<SessionUser | null>(null);
@@ -118,7 +132,7 @@ export default function Inbox() {
   // "Unassigned" is a to-do list: open chats where the customer has written and nobody owns them yet
   // (outreach nobody has replied to doesn't need an owner).
   const needsOwner = (c: Conv) => !c.assignee && c.status === "open" && Boolean(c.lastInboundAt);
-  const inView = useCallback((c: Conv) => view === "all" || (view === "mine" ? c.assignee === me?.username : needsOwner(c)), [view, me]);
+  const inView = useCallback((c: Conv) => (channel === "all" || channelOf(c) === channel) && (view === "all" || (view === "mine" ? c.assignee === me?.username : needsOwner(c))), [view, me, channel]);
   const counts = useMemo(() => {
     const v = list.filter(inView);
     return {
@@ -131,8 +145,11 @@ export default function Inbox() {
       unassigned: list.filter(needsOwner).length,
     };
   }, [list, inView, me]);
-  // Channel filters only matter once there are Instagram chats.
-  const hasInstagram = useMemo(() => list.some((c) => c.channel === "instagram"), [list]);
+  const channelCounts = useMemo(() => ({
+    all: list.length,
+    whatsapp: list.filter((c) => channelOf(c) === "whatsapp").length,
+    instagram: list.filter((c) => channelOf(c) === "instagram").length,
+  }), [list]);
   const teammateName = useMemo(() => new Map(agents.map((a) => [a.username, a.name])), [agents]);
 
   const visible = useMemo(() => {
@@ -148,8 +165,6 @@ export default function Inbox() {
         case "ai": return c.aiEnabled && c.status === "open";
         case "manual": return !c.aiEnabled && c.status === "open";
         case "resolved": return c.status === "resolved";
-        case "whatsapp": return c.channel !== "instagram";
-        case "instagram": return c.channel === "instagram";
         default: return true;
       }
     });
@@ -226,8 +241,22 @@ export default function Inbox() {
             <span className="kbd absolute right-2.5 top-1/2 hidden -translate-y-1/2 md:inline-grid">/</span>
           </label>
         </div>
+        <div className="px-4 pb-2" role="tablist" aria-label="Channel">
+          <div className="grid grid-cols-[auto_1fr_1fr] rounded-xl bg-panel-2 p-0.5 text-[11.5px] font-medium">
+            {CHANNELS.map((ch) => (
+              <button key={ch.key} role="tab" aria-selected={channel === ch.key} onClick={() => setChannel(ch.key)}
+                title={`${ch.label}: ${channelCounts[ch.key]} chats`}
+                className={`flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 transition ${channel === ch.key ? "bg-panel text-ink shadow-sm" : "text-ink-2 hover:text-ink"}`}>
+                {ch.key === "whatsapp" && <MessageCircle size={12} className={`shrink-0 ${channel === ch.key ? "text-ok" : ""}`} />}
+                {ch.key === "instagram" && <span className="shrink-0"><InstagramGlyph active={channel === ch.key} /></span>}
+                <span className="whitespace-nowrap">{ch.key === "all" ? "All" : ch.label}</span>
+                <span className="text-[10px] tabular-nums text-ink-3">{channelCounts[ch.key]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="scroll-thin flex gap-1.5 overflow-x-auto px-4 pb-3">
-          {FILTERS.filter((f) => hasInstagram || (f.key !== "whatsapp" && f.key !== "instagram")).map((f) => {
+          {FILTERS.map((f) => {
             const n = f.key === "unread" ? counts.unread : f.key === "human" ? counts.human : f.key === "hot" ? counts.hot : f.key === "waiting" ? counts.waiting : 0;
             return (
               <button key={f.key} onClick={() => setFilter(f.key)}

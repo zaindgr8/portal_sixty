@@ -12,5 +12,5 @@ export default async function AppLayout({ children }: LayoutProps<'/'>) {
   if (!user.platformAdmin && (!ws || ws.status !== 'active')) {
     return <WorkspaceBlocked name={ws?.name ?? user.workspaceName} status={ws?.status ?? 'missing'} />;
   }
-  return <AppShell user={user}>{children}</AppShell>;
+  return <AppShell user={user} features={ws?.features ?? []}>{children}</AppShell>;
 }

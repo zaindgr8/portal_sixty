@@ -33,7 +33,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const id = (await params).id;
   const ws = await getWorkspace(id);
   if (!ws) return fail("Workspace not found.", 404);
-  const b = await body<{ status: WorkspaceStatus; modules: string[]; plan: string; name: string; notes: string }>(req);
+  const b = await body<{ status: WorkspaceStatus; modules: string[]; features: string[]; plan: string; name: string; notes: string }>(req);
 
   const patch: WorkspacePatch = { approvedBy: g.user.username };
   if (b.status !== undefined) {
@@ -45,6 +45,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
     const modules = b.modules.filter((m): m is ModuleKey => (MODULES as readonly string[]).includes(m));
     if (!modules.length) return fail("Pick at least one module.");
     patch.modules = modules;
+  }
+  if (b.features !== undefined) {
+    // Known feature flags only.
+    patch.features = (Array.isArray(b.features) ? b.features : []).filter((f) => f === "proptech_auto_listing");
   }
   if (b.plan !== undefined) {
     if (!(PLANS as readonly string[]).includes(b.plan)) return fail("Unknown plan.");

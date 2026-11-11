@@ -81,6 +81,8 @@ export interface WorkspaceInfo {
   status: WorkspaceStatus;
   plan: string;
   modules: ModuleKey[];
+  /** Feature flags, e.g. "proptech_auto_listing". */
+  features: string[];
   isPrimary: boolean;
   contactName: string;
   contactEmail: string;

@@ -2,8 +2,9 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, ChevronsLeft, ChevronsRight, LogOut, Menu, Moon, Search, Sun, X } from 'lucide-react';
+import { Bot, ChevronDown, ChevronsLeft, Sparkles, ChevronsRight, LogOut, Menu, Moon, Search, Sun, X } from 'lucide-react';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
+import AssistantPanel, { openAssistant } from '@/components/assistant/AssistantPanel';
 import { SixtyLogo, SixtyMark } from './SixtyLogo';
 import type { SessionUser } from '@/lib/auth/modules';
 import { api, displayName, useAgentName, useLive } from '@/lib/whatsapp/client';
@@ -22,21 +23,23 @@ function readPref(key: string) {
   try { return localStorage.getItem(key); } catch { return null; }
 }
 
-export default function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
+export default function AppShell({ user, features = [], children }: { user: SessionUser; features?: string[]; children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const { theme, toggle: toggleTheme } = useTheme();
   const agentName = useAgentName();
   // The AI agent page is named after the agent ("Freya").
   const sections = useMemo(
-    () => navFor(user).map((s) => ({ ...s, items: s.items.map((i) => (i.href === '/whatsapp/agent' ? { ...i, label: agentName } : i)) })),
-    [user, agentName],
+    () => navFor(user, features).map((s) => ({ ...s, items: s.items.map((i) => (i.href === '/whatsapp/agent' ? { ...i, label: agentName } : i)) })),
+    [user, agentName, features],
   );
   const hasWa = user.modules.includes('whatsapp');
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [palette, setPalette] = useState(false);
   const [agentOn, setAgentOn] = useState<boolean | null>(null);
+  const [closedSections, setClosedSections] = useState<string[]>([]);
+  const toggleSection = (t: string) => setClosedSections((c) => (c.includes(t) ? c.filter((x) => x !== t) : [...c, t]));
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- restore a saved preference after hydration
@@ -95,6 +98,11 @@ export default function AppShell({ user, children }: { user: SessionUser; childr
         <Search size={15} />
         {!rail && <><span>Search…</span><span className="ml-auto rounded border border-white/15 px-1.5 text-[10px]">⌘K</span></>}
       </button>
+      <button onClick={openAssistant} title="Ask Sixty: chat to find anything or make changes  ⌘J"
+        className={`mx-3 -mt-2 mb-4 flex items-center gap-2 rounded-xl bg-ai/15 px-3 py-2 text-[13px] font-medium text-white transition hover:bg-ai/25 ${rail ? 'justify-center px-0' : ''}`}>
+        <Sparkles size={15} className="text-ai" />
+        {!rail && <><span>Ask Sixty</span><span className="ml-auto rounded border border-white/15 px-1.5 text-[10px] text-side-ink">⌘J</span></>}
+      </button>
 
       <nav className="scroll-thin min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         {sections.map((s, i) => (
@@ -102,7 +110,12 @@ export default function AppShell({ user, children }: { user: SessionUser; childr
             {s.title && (
               rail ? <div className="mx-auto mb-2 h-px w-6 bg-white/10" /> : (
                 <div className="mb-1.5 flex items-center gap-2 px-2.5">
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[.08em] text-side-ink/80">{s.title}</span>
+                  {s.collapsible ? (
+                    <button onClick={() => toggleSection(s.title!)} aria-expanded={!closedSections.includes(s.title!)}
+                      className="flex flex-1 items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[.08em] text-side-ink/80 hover:text-white">
+                      {s.title}<ChevronDown size={12} className={`ml-auto transition ${closedSections.includes(s.title!) ? '-rotate-90' : ''}`} />
+                    </button>
+                  ) : <span className="text-[10.5px] font-semibold uppercase tracking-[.08em] text-side-ink/80">{s.title}</span>}
                   {s.module === 'whatsapp' && agentOn !== null && (
                     <button onClick={toggleAgent} title={agentOn ? `${agentName} is live on WhatsApp. Click to pause everywhere.` : `${agentName} is paused. Click to resume.`}
                       className={`ml-auto flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${agentOn ? 'bg-ok/15 text-ok' : 'bg-warn/15 text-warn'}`}>
@@ -113,9 +126,11 @@ export default function AppShell({ user, children }: { user: SessionUser; childr
                 </div>
               )
             )}
-            <ul className="space-y-0.5">
-              {s.items.map((it) => <NavLink key={it.href} item={it} active={isActive(it.href, path)} rail={rail} />)}
-            </ul>
+            {!(s.collapsible && !rail && closedSections.includes(s.title!)) && (
+              <ul className="space-y-0.5">
+                {s.items.map((it) => <NavLink key={it.href} item={it} active={isActive(it.href, path)} rail={rail} />)}
+              </ul>
+            )}
           </div>
         ))}
       </nav>
@@ -166,10 +181,12 @@ export default function AppShell({ user, children }: { user: SessionUser; childr
         <header className="flex items-center gap-3 border-b border-line bg-panel px-3 py-2 md:hidden">
           <button onClick={() => setMobileOpen(true)} className="rounded-lg p-1.5 text-ink-2 hover:bg-panel-2" aria-label="Open menu"><Menu size={20} /></button>
           <SixtyLogo size={26} by={false} />
-          <button onClick={() => setPalette(true)} className="ml-auto rounded-lg p-1.5 text-ink-2 hover:bg-panel-2" aria-label="Search"><Search size={18} /></button>
+          <button onClick={openAssistant} className="ml-auto rounded-lg p-1.5 text-ai hover:bg-panel-2" aria-label="Ask Sixty"><Sparkles size={18} /></button>
+          <button onClick={() => setPalette(true)} className="rounded-lg p-1.5 text-ink-2 hover:bg-panel-2" aria-label="Search"><Search size={18} /></button>
         </header>
         <main className="min-h-0 flex-1">{children}</main>
       </div>
+      <AssistantPanel />
 
       {hasWa && path.startsWith('/whatsapp') && <AgentSettingsListener onChange={loadAgent} />}
 

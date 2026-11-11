@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sixty Auto Listing</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <img src="icons/48.png" alt="" width="24" height="24" />
+    <div><strong>Sixty</strong><span id="who">Auto Listing</span></div>
+    <button id="refresh" class="ghost" title="Refresh">↻</button>
+  </header>
+
+  <section id="pair" hidden>
+    <h1>Connect to Sixty</h1>
+    <p>In Sixty, open <b>PropTech → Chrome extension</b>, press <b>Get pairing code</b>, then paste it here.</p>
+    <textarea id="code" rows="4" placeholder="Paste your pairing code"></textarea>
+    <button id="pairBtn" class="primary">Connect</button>
+  </section>
+
+  <section id="main" hidden>
+    <p class="hint">Listings you approved in Sixty for Property Finder or Bayut wait here. Pick one, sign in to the portal in the tab that opens, go to <b>Add listing</b>, and press <b>Fill this page</b> on the Sixty panel.</p>
+    <h2>Waiting to post</h2>
+    <ul id="waiting" class="list"></ul>
+    <h2>Posted recently</h2>
+    <ul id="done" class="list"></ul>
+    <footer>
+      <a id="openPortal" href="#" target="_blank">Open Sixty</a>
+      <button id="unpair" class="ghost">Disconnect</button>
+    </footer>
+  </section>
+
+  <p id="error" class="error" hidden></p>
+  <script src="popup.js"></script>
+</body>
+</html>

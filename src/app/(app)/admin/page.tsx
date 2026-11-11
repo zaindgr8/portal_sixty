@@ -346,6 +346,12 @@ function WorkspaceDrawer({ id, onClose, onChanged }: { id: string; onClose: () =
 
             <div className="mb-4"><span className="mb-1.5 block text-xs font-medium text-ink-2">Modules</span>
               <ModulePicker value={w.modules} onChange={(modules) => modules.length && patch({ modules })} /></div>
+            <div className="mb-4"><span className="mb-1.5 block text-xs font-medium text-ink-2">Features</span>
+              <button type="button" onClick={() => patch({ features: w.features.includes("proptech_auto_listing") ? w.features.filter((f) => f !== "proptech_auto_listing") : [...w.features, "proptech_auto_listing"] })}
+                className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium ${w.features.includes("proptech_auto_listing") ? "border-brand bg-brand/5" : "border-line text-ink-2"}`}>
+                <Building2 size={16} className={w.features.includes("proptech_auto_listing") ? "text-brand" : "text-ink-3"} />PropTech · Auto Listing
+                {w.features.includes("proptech_auto_listing") && <Check size={14} className="ml-auto text-brand" />}
+              </button></div>
             <label className="mb-4 block"><span className="mb-1.5 block text-xs font-medium text-ink-2">Plan</span>
               <select className="input capitalize" value={w.plan} onChange={(e) => patch({ plan: e.target.value })}>{PLANS.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
             <label className="mb-6 block"><span className="mb-1.5 block text-xs font-medium text-ink-2">Internal notes (only platform admins see these)</span>

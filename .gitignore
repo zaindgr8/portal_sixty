@@ -10,3 +10,6 @@ next-env.d.ts
 .DS_Store
 .vercel
 .claude
+/dist
+.next-dev
+*.zip

@@ -1,0 +1,28 @@
+{
+  "_readme": "Property Finder Enterprise API 2.0. The official reference is behind PF Expert → Developer Resources → API Documentation (Decision Maker login). Endpoints and field names below are deliberately EMPTY until copied from those docs: the adapter refuses to call PF while 'verified' is false and tells the admin exactly what's missing. Fill 'baseUrl', 'endpoints' and 'fields', then set verified: true.",
+  "verified": false,
+  "baseUrl": { "sandbox": null, "live": null },
+  "auth": {
+    "_note": "How the API key + secret from PF Expert become a bearer token (token endpoint, grant type, body field names).",
+    "tokenEndpoint": null,
+    "keyField": null,
+    "secretField": null,
+    "tokenTtlSeconds": null
+  },
+  "endpoints": {
+    "createListing": null,
+    "updateListing": null,
+    "publishListing": null,
+    "unpublishListing": null,
+    "getListing": null,
+    "locationsSearch": null,
+    "leads": null
+  },
+  "fields": {
+    "_note": "PF field name → our field (or const:VALUE). Example shape only; replace with the real names from the docs.",
+    "reference": "ref"
+  },
+  "values": {},
+  "statusMap": { "_note": "PF listing state → our status (live, submitted, rejected, unpublished, expired)." },
+  "rules": { "titleMax": 50, "descMin": 750, "descMax": 1500, "minPhotos": 5, "required": ["permit_number", "agent_brn"], "requireArabic": false }
+}

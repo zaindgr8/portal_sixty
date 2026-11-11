@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Sixty Auto Listing",
+  "short_name": "Sixty",
+  "version": "0.1.0",
+  "description": "Posts your Sixty listings to Property Finder and Bayut from your own Chrome: fills the portal's form and photos, you check and submit.",
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "action": { "default_popup": "popup.html", "default_title": "Sixty Auto Listing", "default_icon": { "16": "icons/16.png", "48": "icons/48.png" } },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://portal.devmatesolutions.com/*",
+    "https://*.propertyfinder.ae/*",
+    "https://*.bayut.com/*",
+    "https://*.dubizzle.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://*.propertyfinder.ae/*", "https://*.bayut.com/*", "https://*.dubizzle.com/*"],
+      "js": ["fill-core.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

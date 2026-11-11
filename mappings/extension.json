@@ -1,0 +1,70 @@
+{
+  "_readme": "Fill rules for the Sixty Chrome extension, served live from /api/ext/config, so editing this file changes every installed extension without a new release. For each portal: where agents add a listing, and how to find each field on that page (CSS selectors first, then visible label text). Labels below are a first pass from the public field names. Tighten them with real selectors once someone opens the actual PF Expert / Bayut add-listing forms (Chrome DevTools → right-click a field → Copy selector).",
+  "version": 1,
+  "portals": {
+    "propertyfinder": {
+      "name": "Property Finder",
+      "hosts": ["propertyfinder.ae", "www.propertyfinder.ae", "expert.propertyfinder.ae"],
+      "startUrl": "https://www.propertyfinder.ae",
+      "successUrlPattern": null,
+      "fields": {
+        "purpose": { "labels": ["offering type", "purpose", "listing type", "for sale or rent"], "options": { "sale": ["Sale", "Sell", "For sale", "Buy"], "rent": ["Rent", "For rent", "Lease"] } },
+        "category": { "labels": ["category", "property category"], "options": { "residential": ["Residential"], "commercial": ["Commercial"] } },
+        "property_type": { "labels": ["property type", "type"], "options": { "apartment": ["Apartment", "Flat"], "villa": ["Villa"], "townhouse": ["Townhouse"], "penthouse": ["Penthouse"], "duplex": ["Duplex"], "hotel_apartment": ["Hotel Apartment", "Hotel & Hotel Apartment"], "land": ["Land", "Plot"], "office": ["Office", "Office Space"], "retail": ["Retail", "Shop"], "warehouse": ["Warehouse"], "full_building": ["Whole Building", "Building"], "bulk_units": ["Bulk Units", "Bulk Sale Units"] } },
+        "completion_status": { "labels": ["completion status", "completion", "status"], "options": { "ready": ["Ready", "Completed", "Ready to move"], "off_plan": ["Off-plan", "Off plan", "Under construction"] } },
+        "community": { "labels": ["location", "community", "area"] },
+        "building": { "labels": ["building", "tower", "project"] },
+        "bedrooms": { "labels": ["bedrooms", "beds", "no. of bedrooms"], "options": { "0": ["Studio", "0"] } },
+        "bathrooms": { "labels": ["bathrooms", "baths", "no. of bathrooms"] },
+        "size_sqft": { "labels": ["size", "area (sqft)", "built-up area", "bua", "property size"] },
+        "plot_sqft": { "labels": ["plot size", "plot area"] },
+        "price": { "labels": ["price", "rent", "amount (aed)", "price (aed)"] },
+        "price_type": { "labels": ["rent frequency", "price period", "frequency"], "options": { "yearly": ["Yearly", "Per year", "Annually"], "monthly": ["Monthly", "Per month"] } },
+        "cheques": { "labels": ["cheques", "number of cheques", "payment"] },
+        "furnishing": { "labels": ["furnishing", "furnished"], "options": { "furnished": ["Furnished", "Yes"], "semi_furnished": ["Semi-furnished", "Partly furnished", "Partly"], "unfurnished": ["Unfurnished", "No"] } },
+        "parking": { "labels": ["parking", "parking spaces"] },
+        "floor": { "labels": ["floor", "floor number"] },
+        "developer": { "labels": ["developer"] },
+        "permit_number": { "labels": ["permit", "permit number", "dld permit", "trakheesi", "rera permit"] },
+        "title_en": { "labels": ["title", "listing title", "title (english)", "title en"] },
+        "description_en": { "labels": ["description", "description (english)", "description en"] },
+        "title_ar": { "labels": ["arabic title", "title (arabic)", "title ar", "العنوان"] },
+        "description_ar": { "labels": ["arabic description", "description (arabic)", "description ar", "الوصف"] },
+        "agent_brn": { "labels": ["brn", "broker number", "rera brn"] },
+        "reference": { "labels": ["reference", "ref", "reference number"] }
+      }
+    },
+    "bayut": {
+      "name": "Bayut / dubizzle",
+      "hosts": ["bayut.com", "www.bayut.com", "profolio.bayut.com", "dubizzle.com", "dubai.dubizzle.com"],
+      "startUrl": "https://www.bayut.com",
+      "successUrlPattern": null,
+      "fields": {
+        "purpose": { "labels": ["purpose", "listing purpose"], "options": { "sale": ["Buy", "Sale", "For sale"], "rent": ["Rent", "For rent"] } },
+        "category": { "labels": ["category", "property category"], "options": { "residential": ["Residential"], "commercial": ["Commercial"] } },
+        "property_type": { "labels": ["property type", "type"], "options": { "apartment": ["Apartment"], "villa": ["Villa"], "townhouse": ["Townhouse"], "penthouse": ["Penthouse"], "duplex": ["Duplex"], "hotel_apartment": ["Hotel Apartment"], "land": ["Residential Plot", "Plot", "Land"], "office": ["Office"], "retail": ["Shop", "Retail"], "warehouse": ["Warehouse"], "full_building": ["Building", "Residential Building"], "bulk_units": ["Bulk Units"] } },
+        "completion_status": { "labels": ["completion status", "completion"], "options": { "ready": ["Ready", "Completed"], "off_plan": ["Off-Plan", "Off plan"] } },
+        "community": { "labels": ["location", "locality", "area"] },
+        "building": { "labels": ["building", "tower", "sub-locality"] },
+        "bedrooms": { "labels": ["bedrooms", "beds"], "options": { "0": ["Studio", "0"] } },
+        "bathrooms": { "labels": ["bathrooms", "baths"] },
+        "size_sqft": { "labels": ["area", "size", "property size", "built-up area"] },
+        "plot_sqft": { "labels": ["plot area", "plot size"] },
+        "price": { "labels": ["price", "rent", "price (aed)"] },
+        "price_type": { "labels": ["rent frequency", "frequency"], "options": { "yearly": ["Yearly", "Annual"], "monthly": ["Monthly"] } },
+        "cheques": { "labels": ["cheques", "number of cheques"] },
+        "furnishing": { "labels": ["furnishing", "furnished"], "options": { "furnished": ["Furnished", "Yes"], "semi_furnished": ["Partly", "Semi-furnished"], "unfurnished": ["Unfurnished", "No"] } },
+        "parking": { "labels": ["parking", "parking spaces"] },
+        "floor": { "labels": ["floor"] },
+        "developer": { "labels": ["developer"] },
+        "permit_number": { "labels": ["permit number", "trakheesi", "dld permit", "permit"] },
+        "title_en": { "labels": ["title", "property title", "title (english)"] },
+        "description_en": { "labels": ["description", "property description", "description (english)"] },
+        "title_ar": { "labels": ["title (arabic)", "arabic title", "العنوان"] },
+        "description_ar": { "labels": ["description (arabic)", "arabic description", "الوصف"] },
+        "agent_brn": { "labels": ["brn", "agent brn"] },
+        "reference": { "labels": ["reference", "ref no", "reference number"] }
+      }
+    }
+  }
+}

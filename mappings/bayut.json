@@ -1,0 +1,60 @@
+{
+  "_readme": "Bayut / dubizzle XML feed mapping. Bayut emails the agency the exact spec when the feed is registered: drop the element names in here (no code change needed). Values marked TODO are our best reading of the commonly used Bayut feed and MUST be checked against the spec Bayut sends.",
+  "verified": false,
+  "root": "Properties",
+  "item": "Property",
+  "fields": {
+    "Property_Ref_No": "ref",
+    "Permit_Number": "permit_number",
+    "Property_Status": "status",
+    "Property_purpose": "purpose",
+    "Property_Type": "property_type",
+    "Property_Size": "size_sqft",
+    "Property_Size_Unit": "const:SQFT",
+    "Plot_Area": "plot_sqft",
+    "Bedrooms": "bedrooms",
+    "Bathrooms": "bathrooms",
+    "Price": "price",
+    "Rent_Frequency": "rent_frequency",
+    "Cheques": "cheques",
+    "Furnished": "furnishing",
+    "Off_Plan": "off_plan",
+    "Completion_Status": "completion_status",
+    "Handover_Date": "handover_date",
+    "Developer": "developer",
+    "Payment_Plan": "payment_plan",
+    "City": "emirate",
+    "Locality": "community",
+    "Sub_Locality": "sub_community",
+    "Tower_Name": "building",
+    "Property_Title": "title_en",
+    "Property_Title_AR": "title_ar",
+    "Property_Description": "description_en",
+    "Property_Description_AR": "description_ar",
+    "Floor": "floor",
+    "View": "view",
+    "Parking": "parking",
+    "Listing_Agent": "agent_name",
+    "Listing_Agent_Email": "agent_email",
+    "Listing_Agent_Phone": "agent_phone",
+    "Agent_BRN": "agent_brn",
+    "Agency_ORN": "agency_orn",
+    "Last_Updated": "updated_at"
+  },
+  "lists": {
+    "Features": { "item": "Feature", "from": "amenities" },
+    "Images": { "item": "Image", "from": "images" }
+  },
+  "values": {
+    "purpose": { "sale": "Buy", "rent": "Rent" },
+    "rent_frequency": { "yearly": "Yearly", "monthly": "Monthly" },
+    "furnishing": { "furnished": "Yes", "semi_furnished": "Partly", "unfurnished": "No" },
+    "completion_status": { "ready": "completed", "off_plan": "off_plan" },
+    "property_type": {
+      "apartment": "Apartment", "villa": "Villa", "townhouse": "Townhouse", "penthouse": "Penthouse", "duplex": "Duplex",
+      "hotel_apartment": "Hotel Apartment", "land": "Residential Plot", "office": "Office", "retail": "Shop", "warehouse": "Warehouse",
+      "full_building": "Building", "bulk_units": "Bulk Units"
+    }
+  },
+  "rules": { "titleMax": 50, "descMin": 750, "descMax": 1500, "minPhotos": 5, "required": ["permit_number", "agent_brn", "agency_orn"], "requireArabic": false }
+}

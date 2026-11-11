@@ -14,6 +14,7 @@ interface Row {
   status: WorkspaceStatus;
   plan: string;
   modules: string[];
+  features?: string[] | null;
   is_primary: boolean;
   contact_name: string;
   contact_email: string;
@@ -39,6 +40,7 @@ const toWorkspace = (r: Row): Workspace => {
     status: r.status,
     plan: r.plan,
     modules: r.modules.filter((m): m is ModuleKey => (MODULES as readonly string[]).includes(m)),
+    features: r.features ?? [],
     isPrimary: r.is_primary,
     contactName: r.contact_name,
     contactEmail: r.contact_email,
@@ -117,7 +119,7 @@ export async function createWorkspace(w: { name: string; status: WorkspaceStatus
   return toWorkspace(rows[0]);
 }
 
-export type WorkspacePatch = Partial<Pick<WorkspaceInfo, "name" | "status" | "plan" | "modules" | "notes" | "contactName" | "contactEmail">> & {
+export type WorkspacePatch = Partial<Pick<WorkspaceInfo, "name" | "status" | "plan" | "modules" | "features" | "notes" | "contactName" | "contactEmail">> & {
   config?: WorkspaceConfig;
   /** Merged into the saved onboarding data. */
   onboarding?: Partial<Onboarding>;
@@ -133,6 +135,7 @@ export async function updateWorkspace(id: string, patch: WorkspacePatch): Promis
   if (patch.name !== undefined) body.name = patch.name;
   if (patch.plan !== undefined) body.plan = patch.plan;
   if (patch.modules !== undefined) body.modules = patch.modules;
+  if (patch.features !== undefined) body.features = patch.features;
   if (patch.notes !== undefined) body.notes = patch.notes;
   if (patch.contactName !== undefined) body.contact_name = patch.contactName;
   if (patch.contactEmail !== undefined) body.contact_email = patch.contactEmail;
