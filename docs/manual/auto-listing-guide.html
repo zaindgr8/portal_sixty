@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Sixty Auto Listing — User Guide</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --red: #d9343a; --red-dk: #b3242a; --red-soft: #fdecec;
+    --ink: #121212; --ink2: #4a4a4a; --ink3: #8a8a8a;
+    --line: #ece8e4; --paper: #ffffff; --warm: #faf7f4;
+    --ok: #0f9d6b; --ok-soft: #e6f6ef; --warn: #b7791f; --warn-soft: #fdf4e3; --ai: #6d5bd0; --ai-soft: #efecfb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font: 10.5pt/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Helvetica, sans-serif; color: var(--ink); background: #ddd; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; position: relative; overflow: hidden; background: var(--paper); page-break-after: always; break-after: page; padding: 20mm 18mm 22mm; }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+
+  /* running header / footer */
+  .top { position: absolute; top: 9mm; left: 18mm; right: 18mm; display: flex; align-items: center; justify-content: space-between; font-size: 8pt; color: var(--ink3); letter-spacing: .02em; }
+  .top img { height: 16px; }
+  .foot { position: absolute; bottom: 9mm; left: 18mm; right: 18mm; display: flex; justify-content: space-between; font-size: 8pt; color: var(--ink3); border-top: 1px solid var(--line); padding-top: 3mm; }
+
+  h1 { font-size: 24pt; line-height: 1.15; margin: 0 0 4mm; letter-spacing: -.02em; }
+  h2 { font-size: 13pt; margin: 5mm 0 2.5mm; letter-spacing: -.01em; }
+  h3 { font-size: 10.5pt; margin: 0 0 1.5mm; }
+  p { margin: 0 0 3mm; }
+  .lede { font-size: 11.5pt; color: var(--ink2); margin-bottom: 5mm; max-width: 150mm; }
+  .kicker { display: inline-flex; align-items: center; gap: 2mm; font-size: 8.5pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--red); margin-bottom: 3mm; }
+  .kicker .num { width: 7mm; height: 7mm; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; letter-spacing: 0; font-size: 9pt; }
+  b, strong { font-weight: 650; }
+  .muted { color: var(--ink3); }
+  .small { font-size: 9pt; }
+
+  /* screenshot frames */
+  .shot { border-radius: 10px; overflow: hidden; border: 1px solid #2a2a2a; background: #111; box-shadow: 0 6px 22px rgba(0,0,0,.14); }
+  .shot .bar { height: 6mm; background: #1c1c1c; display: flex; align-items: center; gap: 1.6mm; padding: 0 3mm; }
+  .shot .bar i { width: 2.2mm; height: 2.2mm; border-radius: 50%; background: #444; display: block; }
+  .shot .bar i:nth-child(1) { background: #ff5f57; } .shot .bar i:nth-child(2) { background: #febc2e; } .shot .bar i:nth-child(3) { background: #28c840; }
+  .shot .bar span { margin-left: 2mm; font-size: 7pt; color: #888; font-family: ui-monospace, Menlo, monospace; }
+  .shot img { display: block; width: 100%; }
+  .shot.light { border-color: var(--line); background: #fff; }
+  .tight td { padding: 1.1mm 3mm 1.1mm 0; font-size: 9pt; }
+  .crop { height: var(--h); object-fit: cover; object-position: top; }
+  .cap { font-size: 8.5pt; color: var(--ink3); margin-top: 2mm; }
+
+  /* steps */
+  .steps { list-style: none; padding: 0; margin: 0; counter-reset: s; }
+  .steps li { counter-increment: s; position: relative; padding-left: 10mm; margin-bottom: 2.2mm; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: .2mm; width: 6.5mm; height: 6.5mm; border-radius: 50%; background: var(--ink); color: #fff; font-size: 8.5pt; font-weight: 700; display: grid; place-items: center; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7mm; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 5mm; background: #fff; }
+  .card.warm { background: var(--warm); border-color: transparent; }
+
+  .tip, .note, .rule { border-radius: 10px; padding: 3mm 4.5mm; font-size: 9.5pt; margin: 3mm 0; display: flex; gap: 3mm; }
+  .tip { background: var(--ai-soft); color: #3b2f8f; }
+  .note { background: var(--warn-soft); color: #7a4f0e; }
+  .rule { background: var(--red-soft); color: #7d1a1e; }
+  .tip b, .note b, .rule b { color: inherit; }
+  .ico { font-weight: 800; flex-shrink: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .08em; color: var(--ink3); font-weight: 650; padding: 0 3mm 2mm 0; border-bottom: 1px solid var(--line); }
+  td { padding: 2mm 3mm 2mm 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+
+  .chip { display: inline-block; font-size: 8pt; font-weight: 600; padding: .6mm 2.4mm; border-radius: 99px; white-space: nowrap; }
+  .c-req { background: var(--red-soft); color: var(--red-dk); }
+  .c-opt { background: #f1efec; color: var(--ink2); }
+  .c-ok { background: var(--ok-soft); color: var(--ok); }
+  .c-warn { background: var(--warn-soft); color: var(--warn); }
+  .c-ai { background: var(--ai-soft); color: var(--ai); }
+  .c-grey { background: #f1efec; color: var(--ink2); }
+  .c-bad { background: var(--red-soft); color: var(--red-dk); }
+
+  /* cover */
+  .cover { background: #0d0d0d; color: #fff; padding: 0; }
+  .cover .glow { position: absolute; width: 180mm; height: 180mm; border-radius: 50%; right: -60mm; top: -50mm; background: radial-gradient(circle, rgba(217,52,58,.55), rgba(217,52,58,0) 65%); }
+  .cover .glow2 { position: absolute; width: 140mm; height: 140mm; border-radius: 50%; left: -50mm; bottom: -40mm; background: radial-gradient(circle, rgba(109,91,208,.35), rgba(109,91,208,0) 65%); }
+  .cover .in { position: relative; padding: 22mm 20mm; height: 100%; display: flex; flex-direction: column; }
+  .cover .brand { display: flex; align-items: center; gap: 3mm; font-weight: 700; letter-spacing: .14em; font-size: 10pt; }
+  .cover .brand img { height: 11mm; }
+  .cover h1 { font-size: 44pt; line-height: 1.02; margin: 34mm 0 6mm; letter-spacing: -.035em; }
+  .cover h1 em { font-style: normal; color: var(--red); }
+  .cover .sub { font-size: 14pt; color: #bdbdbd; max-width: 135mm; line-height: 1.45; }
+  .cover .pills { display: flex; gap: 3mm; margin-top: 12mm; flex-wrap: wrap; }
+  .cover .pills span { border: 1px solid #333; border-radius: 99px; padding: 2mm 4.5mm; font-size: 9.5pt; color: #ddd; background: rgba(255,255,255,.04); }
+  .cover .hero { margin-top: auto; display: grid; grid-template-columns: 1.35fr 1fr; gap: 6mm; align-items: end; }
+  .cover .hero .shot { border-color: #333; }
+  .cover .meta { margin-top: 8mm; font-size: 8.5pt; color: #777; display: flex; justify-content: space-between; }
+
+  /* flow */
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; margin: 2mm 0 6mm; position: relative; }
+  .flow .n { text-align: center; position: relative; padding: 0 1mm; }
+  .flow .n .dot { width: 15mm; height: 15mm; border-radius: 50%; margin: 0 auto 2.5mm; display: grid; place-items: center; font-size: 15pt; position: relative; z-index: 1; border: 2px solid #fff; }
+  .flow .n:not(:last-child)::after { content: ""; position: absolute; top: 7.5mm; left: 50%; width: 100%; height: 2px; background: repeating-linear-gradient(90deg, #d8d2cc 0 4px, transparent 4px 8px); }
+  .flow .n b { display: block; font-size: 9pt; }
+  .flow .n span { display: block; font-size: 7.8pt; color: var(--ink3); line-height: 1.35; margin-top: .8mm; }
+  .d-you { background: var(--ink); color: #fff; }
+  .d-ai { background: var(--ai); color: #fff; }
+  .d-sys { background: var(--red); color: #fff; }
+  .legend { display: flex; gap: 6mm; font-size: 8.5pt; color: var(--ink2); margin-bottom: 6mm; }
+  .legend i { display: inline-block; width: 3mm; height: 3mm; border-radius: 50%; margin-right: 1.5mm; vertical-align: -.3mm; }
+
+  .stat { text-align: left; }
+  .stat .v { font-size: 22pt; font-weight: 750; letter-spacing: -.03em; line-height: 1; }
+  .stat .l { font-size: 8.5pt; color: var(--ink3); margin-top: 1.5mm; }
+
+  .who { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .who ul { margin: 0; padding-left: 4.5mm; }
+  .who li { margin-bottom: 1mm; } .who { font-size: 9.5pt; }
+  .who .card h3 { display: flex; align-items: center; gap: 2mm; }
+
+  .side { display: grid; grid-template-columns: 1fr 74mm; gap: 7mm; align-items: start; }
+  .side.r { grid-template-columns: 74mm 1fr; }
+  .faq dt { font-weight: 650; margin-top: 2.6mm; }
+  .faq dd { margin: 1mm 0 0; color: var(--ink2); }
+  .toc { columns: 2; column-gap: 10mm; padding: 0; list-style: none; margin: 0; }
+  .toc li { display: flex; justify-content: space-between; border-bottom: 1px dotted #d8d2cc; padding: 1.1mm 0; break-inside: avoid; font-size: 10pt; }
+</style>
+</head>
+<body>
+
+<!-- 1. COVER -->
+<section class="page cover">
+  <div class="glow"></div><div class="glow2"></div>
+  <div class="in">
+    <div class="brand"><img src="img/logo-mark.png" alt="" />SIXTY <span style="color:#777;font-weight:500;letter-spacing:.06em">by DevMate</span></div>
+    <h1>Auto Listing<br/><em>User Guide</em></h1>
+    <p class="sub">Upload a Form A and photos. Sixty's AI reads them, fills in the listing, writes the English and Arabic copy and gets it onto Property Finder and Bayut, while you stay in control.</p>
+    <div class="pills"><span>About 1 minute per listing</span><span>English + Arabic</span><span>Property Finder &amp; Bayut</span><span>Every step logged</span></div>
+    <div class="hero">
+      <div class="shot"><div class="bar"><i></i><i></i><i></i><span>portal.devmatesolutions.com/proptech</span></div><img src="img/review.jpg" alt="" /></div>
+      <div class="shot light"><img src="img/panel.png" alt="" /></div>
+    </div>
+    <div class="meta"><span>For agents and agency admins</span><span>Version 1 · November 2026</span></div>
+  </div>
+</section>
+
+<!-- 2. OVERVIEW -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker">Overview</div>
+  <h1>How Auto Listing works</h1>
+  <p class="lede">You give Sixty the paperwork once. The AI does the reading, typing and writing; you check it, add the Trakheesi permit and approve. Sixty then posts it to the portals and keeps a record of everything.</p>
+
+  <div class="legend"><span><i style="background:var(--ink)"></i>You</span><span><i style="background:var(--ai)"></i>Sixty AI</span><span><i style="background:var(--red)"></i>Sixty posts &amp; tracks</span></div>
+  <div class="flow">
+    <div class="n"><div class="dot d-you">⬆</div><b>Upload</b><span>Form A + 5–50 photos</span></div>
+    <div class="n"><div class="dot d-ai">✦</div><b>AI reads</b><span>Fields, photos, voice note</span></div>
+    <div class="n"><div class="dot d-ai">✎</div><b>AI writes</b><span>English &amp; Arabic copy</span></div>
+    <div class="n"><div class="dot d-you">✓</div><b>You check</b><span>Answer questions, add permit</span></div>
+    <div class="n"><div class="dot d-sys">➤</div><b>Publish</b><span>API, Bayut feed or Chrome extension</span></div>
+    <div class="n"><div class="dot d-sys">●</div><b>Live</b><span>Status &amp; log in Sixty</span></div>
+  </div>
+
+  <div class="grid3" style="margin-bottom:6mm">
+    <div class="card warm stat"><div class="v">~1 min</div><div class="l">from upload to a written, reviewed-ready listing</div></div>
+    <div class="card warm stat"><div class="v">≈ $0.03</div><div class="l">AI cost per listing, shown on every listing</div></div>
+    <div class="card warm stat"><div class="v">10</div><div class="l">listings you can upload in one go</div></div>
+  </div>
+
+  <div class="who">
+    <div class="card">
+      <h3><span class="chip c-ai">Sixty AI does</span></h3>
+      <ul>
+        <li>Reads the Form A (PDF or photos of pages) and fills every field it can find.</li>
+        <li>Shows where each value came from, with the quote and page.</li>
+        <li>Labels rooms, picks a cover, suggests a photo order and flags weak photos.</li>
+        <li>Turns your voice note into text and uses it.</li>
+        <li>Writes the title and description in English and native Arabic.</li>
+        <li>Asks only for what's missing, as quick questions.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3><span class="chip c-grey">You do</span></h3>
+      <ul>
+        <li>Upload the Form A and photos (and anything else useful).</li>
+        <li>Check the fields, especially the ones marked <span class="chip c-warn">Check</span>.</li>
+        <li>Apply for the Trakheesi permit and enter its number and expiry.</li>
+        <li>Press <b>Publish</b>. That's your sign-off, logged with your name.</li>
+        <li>On portals without an API connection: press the portal's own Submit after the extension fills the form.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>In this guide</h2>
+  <ol class="toc">
+    <li><span>One-time setup</span><span>3</span></li>
+    <li><span>What to upload</span><span>4</span></li>
+    <li><span>Step 1 · Upload</span><span>5</span></li>
+    <li><span>Step 2 · Review the AI's work</span><span>6</span></li>
+    <li><span>Step 3 · Photos &amp; copy</span><span>7</span></li>
+    <li><span>Step 4 · Permit &amp; checklist</span><span>8</span></li>
+    <li><span>Step 5 · Publish</span><span>9</span></li>
+    <li><span>Step 6 · Post with the extension</span><span>10</span></li>
+    <li><span>Tracking &amp; changes</span><span>11</span></li>
+    <li><span>Questions &amp; rules</span><span>12</span></li>
+  </ol>
+  <div class="foot"><span>Sixty by DevMate</span><span>2</span></div>
+</section>
+
+<!-- 3. SETUP -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker">Before you start</div>
+  <h1>One-time setup</h1>
+  <p class="lede">Do this once per agency, and the Chrome extension part once per agent. It takes about five minutes.</p>
+
+  <div class="side">
+    <div>
+      <h2 style="margin-top:0">A · Save your agency and agent numbers <span class="chip c-grey">Admin</span></h2>
+      <ol class="steps">
+        <li>Open <b>PropTech → Portal Settings</b>.</li>
+        <li>Under <b>Agency &amp; agents</b>, enter the agency <b>ORN</b> (RERA office number).</li>
+        <li>For each agent, enter their <b>BRN</b>, the phone and email buyers should see, and their Property Finder user ID if you have it.</li>
+        <li>Press <b>Save numbers</b>. Every new listing is filled in with these automatically.</li>
+      </ol>
+      <div class="tip"><span class="ico">✦</span><span>If an agent's BRN is missing, the AI will ask for it on each listing. Saving it here means it never has to.</span></div>
+    </div>
+    <div><div class="shot"><img src="img/settings.jpg" alt="" /></div><div class="cap">PropTech → Portal Settings</div></div>
+  </div>
+
+  <h2>B · Install the Sixty Chrome extension <span class="chip c-grey">Each agent</span> <span class="small muted" style="font-weight:400">· Google Chrome on a computer</span></h2>
+    <div class="side">
+    <ol class="steps">
+      <li>Open <b>PropTech → Chrome extension</b> and press <b>Download</b>. Unzip the file: you get a folder called <b>sixty-extension</b>.</li>
+      <li>In Chrome go to <b>chrome://extensions</b> and switch on <b>Developer mode</b> (top right).</li>
+      <li>Press <b>Load unpacked</b>, click once on the <b>sixty-extension</b> folder and press <b>Select</b>. Chrome only accepts the folder, not the zip.</li>
+      <li>Click the puzzle icon in Chrome's toolbar and pin <b>Sixty Auto Listing</b>.</li>
+      <li>Back in Sixty press <b>Get pairing code</b> → <b>Copy</b>. Click the Sixty icon, paste the code and press <b>Connect</b>.</li>
+    </ol>
+    <div>
+      <div class="shot light"><img src="img/popup-pair.png" alt="" /></div><div class="cap">The extension, ready to be paired</div>
+    </div>
+  </div>
+  <div class="note"><span class="ico">!</span><span><b>Treat the pairing code like a password.</b> It lasts 90 days and works only for you. Lost a laptop? Press <b>Disconnect</b> and every old code stops working.</span></div>
+  <div class="foot"><span>Sixty by DevMate</span><span>3</span></div>
+</section>
+
+<!-- 4. WHAT TO UPLOAD -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker">Checklist</div>
+  <h1>What to upload</h1>
+  <p class="lede">The more the AI can read, the less you type. Only the Form A and five photos are required.</p>
+
+  <table>
+    <tr><th style="width:36mm">Item</th><th style="width:22mm"></th><th>What the AI uses it for</th><th style="width:44mm">Format</th></tr>
+    <tr><td><b>Form A</b> / listing form</td><td><span class="chip c-req">Required</span></td><td>Sale or rent, type, location, building, unit, floor, size, bedrooms, bathrooms, price, the owner's details, Form A number and expiry.</td><td>PDF, or a photo of each page (JPG, PNG, HEIC). Up to 25 MB each.</td></tr>
+    <tr><td><b>Property photos</b></td><td><span class="chip c-req">5 to 50</span></td><td>Room labels, cover choice, photo order, amenities it can see (pool, gym, view), and quality warnings.</td><td>JPG, PNG, HEIC or WebP. Up to 25 MB each.</td></tr>
+    <tr><td><b>Title deed</b> or <b>Oqood</b></td><td><span class="chip c-opt">Optional</span></td><td>Confirms the unit, size and owner. Documents win over notes for legal details.</td><td>PDF or photos.</td></tr>
+    <tr><td><b>Floor plan</b></td><td><span class="chip c-opt">Optional</span></td><td>Layout and size checks; can be published with the photos.</td><td>PDF or image.</td></tr>
+    <tr><td><b>Voice note</b></td><td><span class="chip c-opt">Optional</span></td><td>Record it in the browser or upload one. Say what makes the home special: upgrades, view, vacancy, viewing times. Used for the description.</td><td>Up to 3 minutes. m4a, mp3, webm, ogg, wav.</td></tr>
+    <tr><td><b>Notes</b></td><td><span class="chip c-opt">Optional</span></td><td>Same as the voice note, typed.</td><td>Text.</td></tr>
+  </table>
+
+  <h2>Photos that portals accept</h2>
+  <div class="grid2">
+    <div class="card warm">
+      <h3 style="color:var(--ok)">✓ Do</h3>
+      <ul style="margin:0;padding-left:4.5mm">
+        <li>Landscape, bright, level shots.</li>
+        <li>At least 800 px on the short side (most phones are far above this).</li>
+        <li>One clear exterior or view photo you'd be happy to see as the cover.</li>
+        <li>Every main room at least once.</li>
+      </ul>
+    </div>
+    <div class="card warm">
+      <h3 style="color:var(--red-dk)">✕ Avoid</h3>
+      <ul style="margin:0;padding-left:4.5mm">
+        <li>Watermarks, logos, phone numbers or text on the photo: portals reject these.</li>
+        <li>People, number plates or personal items.</li>
+        <li>Screenshots and collages.</li>
+        <li>Very dark or blurry shots. Sixty flags them so you can swap them.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="rule"><span class="ico">🔒</span><span><b>Owner details stay private.</b> The owner's name, phone and Emirates ID / passport from the Form A are stored encrypted, shown only to agency admins, and never sent to any portal or to the Chrome extension.</span></div>
+  <div class="foot"><span>Sixty by DevMate</span><span>4</span></div>
+</section>
+
+<!-- 5. STEP 1 UPLOAD -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker"><span class="num">1</span>Step one</div>
+  <h1>Upload and let the AI work</h1>
+  <p class="lede">One screen, one button. The AI takes about a minute and you can leave the page while it works.</p>
+
+  <div class="side">
+    <div>
+      <ol class="steps">
+        <li>Go to <b>PropTech → New Listing</b>.</li>
+        <li><b>Add Form A</b>: drop the PDF, or several photos of its pages.</li>
+        <li><b>Add photos</b>: drop 5 to 50 at once. Each shows its own progress bar. Tap the ☆ to choose the cover yourself, or let the AI choose.</li>
+        <li>Optional: add a title deed, Oqood or floor plan, record a voice note, or type notes.</li>
+        <li>Press <b>Read &amp; write listing</b>. The button lights up once the Form A and five photos are in.</li>
+      </ol>
+      <div class="tip"><span class="ico">✦</span><span><b>Several properties?</b> Press <b>Add another listing</b> to fill up to 10 cards on one screen, then start them all together.</span></div>
+    </div>
+    <div><div class="shot"><img src="img/new.jpg" alt="" /></div><div class="cap">PropTech → New Listing</div></div>
+  </div>
+
+  <h2>What happens next</h2>
+  <div class="grid2">
+    <div class="card">
+      <table>
+        <tr><td style="width:7mm">1</td><td><b>Reading Form A</b><br/><span class="small muted">Every field, with the page and quote it came from.</span></td></tr>
+        <tr><td>2</td><td><b>Analysing photos</b><br/><span class="small muted">Rooms, cover, order, visible amenities, quality.</span></td></tr>
+        <tr><td>3</td><td><b>Transcribing voice note</b><br/><span class="small muted">Only if you added one.</span></td></tr>
+        <tr><td>4</td><td><b>Writing the English description</b></td></tr>
+        <tr><td>5</td><td><b>Writing the Arabic description</b><br/><span class="small muted">Written natively in Arabic, not translated word for word.</span></td></tr>
+      </table>
+    </div>
+    <div>
+      <p>A live checklist shows each step as it finishes. When it's done, the listing opens for review with the status <span class="chip c-warn">Needs review</span>.</p>
+      <p>Closed the page? Find it any time under <b>PropTech → Auto Listing</b>, where every listing shows its status, price and the portals it's on.</p>
+      <div class="shot"><img src="img/grid.jpg" alt="" /></div><div class="cap">PropTech → Auto Listing</div>
+    </div>
+  </div>
+  <div class="foot"><span>Sixty by DevMate</span><span>5</span></div>
+</section>
+
+<!-- 6. STEP 2 REVIEW -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker"><span class="num">2</span>Step two</div>
+  <h1>Review the AI's work</h1>
+  <p class="lede">Everything the AI filled in is editable, and every value tells you where it came from, so checking takes seconds.</p>
+
+  <div class="shot" style="margin-bottom:5mm"><div class="bar"><i></i><i></i><i></i><span>Listing review</span></div><img class="crop" style="--h:92mm" src="img/review.jpg" alt="" /></div>
+
+  <div class="grid3">
+    <div class="card">
+      <h3>✦ AI asks</h3>
+      <p class="small">Only what the AI couldn't find, as quick questions. Tap a suggested answer or <b>Other…</b> to type one.</p>
+    </div>
+    <div class="card">
+      <h3>📄 Sources</h3>
+      <p class="small">Under each field: <i>Form A, page 1 · "Purpose: Sale"</i>. Tap the PDF tag to open that page.</p>
+    </div>
+    <div class="card">
+      <h3><span class="chip c-warn">Check · 60%</span></h3>
+      <p class="small">An amber box means the AI was unsure or guessed. Look at these first. Anything you change is marked as yours and the AI never overwrites it.</p>
+    </div>
+  </div>
+
+  <h2>Field labels you'll see</h2>
+  <table>
+    <tr><td style="width:40mm"><b>Form A, page 1</b></td><td>Read directly from the document. Documents win for legal details: unit, size, owner, price.</td></tr>
+    <tr><td><b>Photos</b></td><td>Seen in the photos, such as amenities or the view.</td></tr>
+    <tr><td><b>Voice note / Notes</b></td><td>From what you said or typed. These win for marketing details: upgrades, highlights.</td></tr>
+    <tr><td><b>AI guess</b></td><td>Worked out, not read. Always shown with <span class="chip c-warn">Check</span>.</td></tr>
+    <tr><td><b>Agent</b></td><td>You entered or changed it.</td></tr>
+  </table>
+  <div class="foot"><span>Sixty by DevMate</span><span>6</span></div>
+</section>
+
+<!-- 7. STEP 3 PHOTOS & COPY -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker"><span class="num">3</span>Step three</div>
+  <h1>Photos and copy</h1>
+  <p class="lede">The AI has already sorted the photos and written both languages. Adjust anything you like.</p>
+
+  <h2 style="margin-top:0">Photos</h2>
+  <div class="side">
+    <div class="shot"><img src="img/photos.jpg" alt="" /></div>
+    <div>
+      <ul style="margin:0;padding-left:4.5mm">
+        <li>Each photo has a room label.</li>
+        <li>The <span class="chip c-bad">COVER</span> is the first photo portals show. Tap ☆ on another photo to change it.</li>
+        <li>Use the arrows to reorder.</li>
+        <li>The bin removes a photo from the listing (you can restore it).</li>
+        <li>Warnings such as low resolution or a watermark appear on the photo.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>English and Arabic copy</h2>
+  <div class="side r">
+    <div>
+      <ul style="margin:0;padding-left:4.5mm">
+        <li>Switch between <b>English</b> and <b>العربية</b>.</li>
+        <li>Pick a tone: <b>Professional</b>, <b>Luxury</b> or <b>Investor</b>, then press <b>Regenerate</b>.</li>
+        <li>Edit the text directly if you prefer.</li>
+        <li>The counter shows the length portals expect: <b>750 to 1,500</b> characters for descriptions.</li>
+        <li>The AI writes only from verified details and your notes. It never adds phone numbers, emails, links or emoji, which portals reject.</li>
+      </ul>
+      <div class="tip"><span class="ico">✦</span><span>Added something to your notes or voice transcript after the AI wrote the copy? Press <b>Regenerate</b> so it's included.</span></div>
+    </div>
+    <div class="shot"><img src="img/description.jpg" alt="" /></div>
+  </div>
+  <div class="foot"><span>Sixty by DevMate</span><span>7</span></div>
+</section>
+
+<!-- 8. STEP 4 PERMIT -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker"><span class="num">4</span>Step four</div>
+  <h1>Trakheesi permit and checklist</h1>
+  <p class="lede">Dubai requires a valid Trakheesi advertising permit on every listing. Sixty helps you apply, then locks publishing until the permit is in.</p>
+
+  <div class="side">
+    <div>
+      <ol class="steps">
+        <li>Press <b>Copy permit application data</b>. Everything the Trakheesi form asks for is copied in one go. <b>Download bundle</b> gives you the Form A plus a details PDF to attach.</li>
+        <li>Apply on Trakheesi as usual.</li>
+        <li>Back in Sixty, enter the <b>Trakheesi permit number</b> and <b>Permit expiry</b>.</li>
+        <li>Check the <b>Agency ORN</b> and <b>Agent BRN</b> (filled from Portal Settings).</li>
+      </ol>
+      <div class="rule"><span class="ico">!</span><span><b>Sixty never makes up a permit.</b> Only a real Trakheesi permit can be entered. An expired permit blocks publishing until it's renewed.</span></div>
+
+      <h2>The pre-publish checklist</h2>
+      <p>Before the Publish button unlocks, every line must be green:</p>
+      <table>
+        <tr><td style="width:6mm">✓</td><td>Valid Trakheesi permit</td></tr>
+        <tr><td>✓</td><td>Required details filled in</td></tr>
+        <tr><td>✓</td><td>At least 5 good photos and a clean cover</td></tr>
+        <tr><td>✓</td><td>Title and description fit the portals' rules</td></tr>
+      </table>
+      <p class="small muted" style="margin-top:3mm">Each red line has a <b>Fix</b> link that jumps to the field.</p>
+    </div>
+    <div>
+      <div class="shot"><img src="img/permit.jpg" alt="" /></div><div class="cap">The Dubai permit box</div>
+    </div>
+  </div>
+  <div class="foot"><span>Sixty by DevMate</span><span>8</span></div>
+</section>
+
+<!-- 9. STEP 5 PUBLISH -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker"><span class="num">5</span>Step five</div>
+  <h1>Publish</h1>
+  <p class="lede">Tick the portals and press Publish. Sixty picks the best way to post to each one automatically.</p>
+
+  <div class="side">
+    <div>
+      <ol class="steps">
+        <li>In the <b>Publish</b> panel, tick <b>Property Finder</b>, <b>Bayut / dubizzle</b> or both. Under each it says how it will be posted.</li>
+        <li>Press <b>Publish</b>, then confirm with <b>Yes, it's right. Publish</b>.</li>
+        <li>If something looks unusual, like a price far from similar homes, Sixty asks you to confirm before going ahead.</li>
+      </ol>
+      <div class="note"><span class="ico">!</span><span>Publishing means you've checked every detail. It's recorded with your name and the time.</span></div>
+    </div>
+    <div><div class="shot"><img src="img/publish-locked.jpg" alt="" /></div><div class="cap">Choose portals. Locked until the checklist is green.</div></div>
+  </div>
+
+  <h2>How each portal is posted</h2>
+  <table>
+    <tr><th style="width:44mm">When your agency has…</th><th>What Sixty does</th><th style="width:36mm">What you do</th></tr>
+    <tr><td><b>Property Finder API</b> connected<br/><span class="small muted">Portal Settings → Property Finder keys</span></td><td>Sends the listing straight to Property Finder and follows its status until it's live.</td><td>Nothing.</td></tr>
+    <tr><td><b>Bayut feed</b> switched on<br/><span class="small muted">Portal Settings → Bayut feed URL</span></td><td>Adds the listing to your agency's Bayut feed. Bayut picks it up on its next read (the feed refreshes every 5 minutes).</td><td>Nothing.</td></tr>
+    <tr><td><b>Neither yet</b></td><td>The listing waits in your <b>Sixty Chrome extension</b>, ready to fill the portal's own form. See Step 6.</td><td>Open the portal, check, press Submit.</td></tr>
+    <tr><td>No extension either</td><td><b>Copy &amp; paste posting</b> on the listing gives every field in the portal's order, plus <b>All photos</b> as a zip.</td><td>Paste into the portal, then press <b>I've posted it</b>.</td></tr>
+  </table>
+  <div class="foot"><span>Sixty by DevMate</span><span>9</span></div>
+</section>
+
+<!-- 10. STEP 6 EXTENSION -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker"><span class="num">6</span>Step six</div>
+  <h1>Post with the Chrome extension</h1>
+  <p class="lede">For portals not connected by API or feed. Sixty fills the portal's own form and photos in your Chrome; you check and press the portal's Submit.</p>
+
+  <div class="side r" style="grid-template-columns:64mm 1fr">
+    <div><div class="shot light"><img src="img/popup-main.png" alt="" /></div><div class="cap">Click the Sixty icon: approved listings wait here</div></div>
+    <div>
+      <ol class="steps">
+        <li>Click the <b>Sixty</b> icon in Chrome's toolbar. Your approved listing is under <b>Waiting to post</b>.</li>
+        <li>Press <b>Post on Property Finder</b> (or Bayut). The portal opens in a new tab.</li>
+        <li>Sign in if asked and open the portal's <b>Add listing</b> page. The <b>Sixty</b> panel appears at the bottom right with your listing.</li>
+        <li>Press <b>Fill this page</b>. Fields Sixty filled get a <span style="color:var(--ok);font-weight:650">green outline</span>.</li>
+        <li>On each step of the portal's form press <b>Fill this page</b> again, then the portal's <b>Next</b>. On the photos step press <b>Add photos</b>: they go in cover first.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:7mm;align-items:start;margin-top:4mm">
+    <div><div class="shot light"><img src="img/panel.png" alt="" /></div><div class="cap">The Sixty panel on the portal's Add listing page</div></div>
+    <ol class="steps" style="counter-reset: s 5">
+      <li>Anything Sixty couldn't fill has a <b>Copy</b> button. Pick the <b>Location</b> from the portal's suggestion list yourself, and type the unit number.</li>
+      <li>Check everything and press the <b>portal's own Submit</b>. Sixty never submits for you.</li>
+      <li>Paste the new listing's link into the panel and press <b>I've submitted it</b>. In Sixty the listing now shows <span class="chip c-ok">PF · Live</span>.</li>
+    </ol>
+  </div>
+  <div class="foot"><span>Sixty by DevMate</span><span>10</span></div>
+</section>
+
+<!-- 11. TRACKING -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker">After publishing</div>
+  <h1>Tracking and changes</h1>
+  <p class="lede">Every listing shows where it's live, and every action, by a person, the AI or the extension, is recorded.</p>
+
+  <div class="side">
+    <div>
+      <h2 style="margin-top:0">Listing status</h2>
+      <table class="tight">
+        <tr><td style="width:30mm"><span class="chip c-grey">Draft</span></td><td>Not sent to the AI yet.</td></tr>
+        <tr><td><span class="chip c-ai">AI working</span></td><td>Reading and writing. About a minute.</td></tr>
+        <tr><td><span class="chip c-warn">Needs review</span></td><td>Ready for you to check.</td></tr>
+        <tr><td><span class="chip c-grey">Approved</span></td><td>You published; on its way to the portals.</td></tr>
+        <tr><td><span class="chip c-ok">Published</span></td><td>Live on at least one portal.</td></tr>
+        <tr><td><span class="chip c-bad">Failed</span></td><td>The AI step couldn't finish. Fill in by hand or try again.</td></tr>
+      </table>
+      <h2>Portal status</h2>
+      <table class="tight">
+        <tr><td style="width:30mm"><span class="chip c-grey">Queued</span></td><td>Waiting to be sent, or waiting in the extension.</td></tr>
+        <tr><td><span class="chip c-grey">Submitted</span></td><td>The portal is checking it.</td></tr>
+        <tr><td><span class="chip c-ok">Live</span></td><td>On the portal. Tap <b>view</b> to open it.</td></tr>
+        <tr><td><span class="chip c-bad">Rejected</span></td><td>The portal said no. The reason is shown in plain words; fix and publish again.</td></tr>
+        <tr><td><span class="chip c-warn">Expired</span></td><td>The permit or listing ran out.</td></tr>
+      </table>
+    </div>
+    <div><div class="shot"><img class="crop" style="--h:100mm" src="img/publish-live.jpg" alt="" /></div><div class="cap">A live listing: Update or Unpublish any time</div></div>
+  </div>
+
+  <h2 style="margin-top:3mm">Changing a live listing</h2>
+  <p>Edit the fields, photos or copy, then press <b>Update</b> next to the portal. To take it down, press <b>Unpublish</b>. If you posted it with the extension or by hand, remove it on the portal too, then press <b>I took it down</b>.</p>
+
+  <h2>The record</h2>
+  <div class="shot"><img class="crop" style="--h:30mm" src="img/eventlog.jpg" alt="" /></div>
+  <div class="cap">The Portal event log (admins) shows each step. The Audit log records who published, changed the permit or unpublished.</div>
+  <div class="foot"><span>Sixty by DevMate</span><span>11</span></div>
+</section>
+
+<!-- 12. FAQ -->
+<section class="page">
+  <div class="top"><img src="img/logo.png" alt="Sixty" /><span>Auto Listing · User Guide</span></div>
+  <div class="kicker">Help</div>
+  <h1>Questions and rules</h1>
+
+  <div class="grid2" style="gap:10mm">
+    <dl class="faq" style="margin:0">
+      <dt>The AI got a field wrong.</dt>
+      <dd>Change it. Your value is marked as yours and the AI won't overwrite it, even if you regenerate the copy.</dd>
+      <dt>The checklist says the description is too short.</dt>
+      <dd>Portals want 750 to 1,500 characters. Add a detail to your notes and press Regenerate, or add a sentence yourself.</dd>
+      <dt>Publish is greyed out.</dt>
+      <dd>Look at the pre-publish checklist: each red line has a Fix link. Most often it's the permit or the BRN.</dd>
+      <dt>The listing is stuck on "AI working".</dt>
+      <dd>Keep the listing page open for a minute. If it says the AI step failed, fill in the fields by hand, or ask your admin to look at it.</dd>
+      <dt>A photo failed to upload.</dt>
+      <dd>Check it's a JPG, PNG, HEIC or WebP under 25 MB, and try again. Large files upload straight to secure storage, so a weak connection is the usual cause.</dd>
+    </dl>
+    <dl class="faq" style="margin:0">
+      <dt>The Sixty panel doesn't appear on the portal.</dt>
+      <dd>Check the extension is paired (click the icon: it shows your name). Then open the listing from <b>Post on…</b> in the extension so the panel knows which listing to use.</dd>
+      <dt>"Fill this page" missed some fields.</dt>
+      <dd>Portals change their forms. Use the Copy buttons for the rest. Sixty updates its fill rules centrally, with no reinstall needed.</dd>
+      <dt>The extension says it isn't connected.</dt>
+      <dd>Your code expired or was disconnected. Get a new code under PropTech → Chrome extension and paste it in.</dd>
+      <dt>Can I ask questions about my listings?</dt>
+      <dd>Yes. Press <b>Ask Sixty</b> (⌘J) and ask, for example, "Which listings still need a permit?"</dd>
+    </dl>
+  </div>
+
+  <h2 style="margin-top:6mm">The rules Sixty always follows</h2>
+  <div class="grid2">
+    <div class="rule" style="margin:0"><span class="ico">1</span><span><b>A person approves every listing.</b> Nothing reaches a portal until someone in your agency presses Publish.</span></div>
+    <div class="rule" style="margin:0"><span class="ico">2</span><span><b>Permit first.</b> No valid Trakheesi permit, no publishing.</span></div>
+    <div class="rule" style="margin:0"><span class="ico">3</span><span><b>Owner data is private.</b> Never published, never sent to portals or the extension, shown only to admins.</span></div>
+    <div class="rule" style="margin:0"><span class="ico">4</span><span><b>Each agency is separate.</b> No agency can see another's listings, files or numbers.</span></div>
+  </div>
+
+  <div class="card warm" style="margin-top:6mm;display:flex;align-items:center;gap:6mm">
+    <img src="img/logo-mark.png" alt="" style="height:16mm" />
+    <div><b>Need help?</b><br/><span class="muted">Contact your agency admin or the DevMate team. Coming next: a Sixty browser that posts to every portal for you.</span></div>
+  </div>
+  <div class="foot"><span>Sixty by DevMate</span><span>12</span></div>
+</section>
+
+</body>
+</html>

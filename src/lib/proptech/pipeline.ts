@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { aiJson, type AiFile } from "./gemini";
 import { copyResponseSchema, copySchema, extractResponseSchema, extractionSchema, photoAnalysisSchema, photoResponseSchema, voiceResponseSchema, voiceSchema, type ExtractedField } from "./schema";
 import { mergeFields } from "./merge";
-import { assembleCopy, copyFacts } from "./copy";
+import { copyFacts, withLength } from "./copy";
 import { missingQuestions } from "./questions";
 import { getObject } from "./storage";
 import { addCost, getInputs, getListing, getListingRow, listMediaRows, readOwner, sealOwner, toMedia, updateInputs, updateListing, updateMedia } from "./store";
@@ -187,22 +187,22 @@ export async function writeCopy(ws: string, l: Listing, transcript: string, note
   const marketing = [notes, transcript && `Voice note: ${transcript}`].filter(Boolean).join("\n\n").slice(0, 5000) || "(none)";
   let cost = 0, tokens = 0;
   const done: string[] = [];
-  const en = await aiJson({ task: "copy_en", prompt: "copy_en", vars: { tone: t, facts, notes: marketing }, responseSchema: copyResponseSchema, schema: copySchema, workspaceId: ws, listingId: l.id, temperature: 0.6 });
+  const en = await withLength((extraText) => aiJson({ task: "copy_en", prompt: "copy_en", vars: { tone: t, facts, notes: marketing }, responseSchema: copyResponseSchema, schema: copySchema, workspaceId: ws, listingId: l.id, temperature: 0.6, extraText }));
   cost += en.costUsd; tokens += en.tokens;
   if (!en.ok) return { cost, tokens, done };
-  const enCopy = assembleCopy(en.data);
+  const enCopy = en.copy;
   const conf = { ...l.fieldConfidence, title_en: 0.9, description_en: 0.9 };
   const src = { ...l.fieldSource, title_en: { source: "inferred" as const }, description_en: { source: "inferred" as const } };
   await updateListing(ws, l.id, { title_en: enCopy.title, description_en: enCopy.description, tone: t, field_confidence: conf, field_source: src });
   done.push("copy_en");
 
-  const ar = await aiJson({
+  const ar = await withLength((extraText) => aiJson({
     task: "copy_ar", prompt: "copy_ar", vars: { tone: t, facts, notes: marketing, english: `${enCopy.title}\n\n${enCopy.description}` },
-    responseSchema: copyResponseSchema, schema: copySchema, workspaceId: ws, listingId: l.id, temperature: 0.6, timeoutMs: 60_000,
-  });
+    responseSchema: copyResponseSchema, schema: copySchema, workspaceId: ws, listingId: l.id, temperature: 0.6, timeoutMs: 60_000, extraText,
+  }));
   cost += ar.costUsd; tokens += ar.tokens;
   if (ar.ok) {
-    const arCopy = assembleCopy(ar.data);
+    const arCopy = ar.copy;
     await updateListing(ws, l.id, {
       title_ar: arCopy.title, description_ar: arCopy.description,
       field_confidence: { ...conf, title_ar: 0.85, description_ar: 0.85 }, field_source: { ...src, title_ar: { source: "inferred" }, description_ar: { source: "inferred" } },

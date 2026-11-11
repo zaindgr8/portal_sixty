@@ -94,9 +94,9 @@ export const copyResponseSchema = {
   type: "OBJECT",
   properties: {
     title: S("50 characters or fewer."),
-    hook: S("One or two sentences."),
-    highlights: { type: "ARRAY", items: S(), description: "4 to 8 short bullet points." },
-    body: S("The rest of the description, plain sentences."),
+    hook: S("Two sentences, about 200-250 characters."),
+    highlights: { type: "ARRAY", items: S(), description: "6 to 8 bullet points of 6-12 words each." },
+    body: S("Two short paragraphs, about 350-450 characters together."),
   },
   required: ["title", "hook", "highlights", "body"],
 } as const;

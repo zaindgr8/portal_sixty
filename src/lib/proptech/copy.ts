@@ -1,7 +1,8 @@
 // Listing copy: what facts Gemini may use, and how its answer becomes a title + description.
 import { PROPERTY_TYPE_LABEL, type Listing } from "./types";
-import { TITLE_MAX, scrubCopy } from "./validate";
+import { DESC_MAX, DESC_MIN, TITLE_MAX, scrubCopy } from "./validate";
 import type { CopyResult } from "./schema";
+import type { AiResult } from "./gemini";
 
 /** Only verified, publishable facts. Never the owner, the unit number or Form A details. */
 export function copyFacts(l: Listing) {
@@ -39,3 +40,30 @@ export function fitTitle(t: string, max = TITLE_MAX) {
   }
   return s.slice(0, max).replace(/\s+\S*$/, "").replace(/[|,\s]+$/, "");
 }
+
+/**
+ * Portals reject descriptions outside 750-1,500 characters, and models are poor at counting. If the first
+ * answer is out of range, ask once more with its real length; keep whichever answer is closer to the range.
+ */
+type Copy = ReturnType<typeof assembleCopy>;
+export type CopyCall = { ok: true; copy: Copy; costUsd: number; tokens: number } | { ok: false; error: string; costUsd: number; tokens: number };
+
+export async function withLength(call: (extraText?: string) => Promise<AiResult<CopyResult>>): Promise<CopyCall> {
+  const first = await call();
+  if (!first.ok) return { ok: false, error: first.error, costUsd: first.costUsd, tokens: first.tokens };
+  const a = assembleCopy(first.data);
+  const off = (n: number) => (n < DESC_MIN ? DESC_MIN - n : n > DESC_MAX ? n - DESC_MAX : 0);
+  if (!off(a.description.length)) return { ok: true, copy: a, costUsd: first.costUsd, tokens: first.tokens };
+  const n = a.description.length;
+  const again = await call(
+    `Your last description was ${n} characters, which portals reject (they need ${DESC_MIN}-${DESC_MAX}). ` +
+    (n < DESC_MIN
+      ? `Write it again at about 1,000-1,200 characters: longer hook, 6-8 fuller highlights, and two body paragraphs. Still use only the facts given.`
+      : `Write it again at about 1,000-1,200 characters: tighter sentences and fewer highlights.`),
+  );
+  const costUsd = first.costUsd + again.costUsd, tokens = first.tokens + again.tokens;
+  if (!again.ok) return { ok: true, copy: a, costUsd, tokens };
+  const b = assembleCopy(again.data);
+  return { ok: true, copy: off(b.description.length) <= off(n) ? b : a, costUsd, tokens };
+}
+
