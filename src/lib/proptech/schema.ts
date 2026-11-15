@@ -48,6 +48,11 @@ export const extractResponseSchema = {
       type: "OBJECT",
       properties: { name: S(), idNumber: S("Emirates ID or passport number"), phone: S(), email: S() },
     },
+    permit: {
+      type: "OBJECT",
+      description: "Only from a Trakheesi / DLD advertising permit document. Leave out otherwise.",
+      properties: { number: S("Permit number exactly as printed"), expiry: S("Permit expiry date, YYYY-MM-DD") },
+    },
     document_kind: { type: "STRING", enum: ["form_a", "listing_form", "other", "unreadable"] },
     notes: S("Anything odd about the documents, e.g. expired, unsigned, two different unit numbers. Short."),
   },
@@ -126,6 +131,7 @@ export const extractionSchema = z.object({
   fields: lenientArray(extractedFieldSchema),
   amenities: z.array(z.string().trim().min(1).max(60)).max(40).catch([]).default([]),
   owner: z.object({ name: optStr, idNumber: optStr, phone: optStr, email: optStr }).partial().catch({}).default({}),
+  permit: z.object({ number: optStr, expiry: optStr }).partial().catch({}).default({}),
   document_kind: z.enum(["form_a", "listing_form", "other", "unreadable"]).catch("other"),
   notes: z.string().max(1000).optional().catch(undefined),
 });
@@ -227,4 +233,13 @@ export function cleanOwner(o: { name?: string; idNumber?: string; phone?: string
   const id = o.idNumber?.trim();
   if (id && /\d/.test(id) && id.length <= 40) out.idNumber = id;
   return out;
+}
+
+// ---------- Trakheesi permit from an uploaded permit document ----------
+/** A permit number and expiry worth saving, or null. Same number rule as the pre-publish check. */
+export function readPermit(p: { number?: string; expiry?: string } | undefined) {
+  const number = p?.number?.replace(/\s+/g, "").trim();
+  if (!number || !/^[A-Za-z0-9-]{4,30}$/.test(number)) return null;
+  const expiry = p?.expiry ? toIsoDate(p.expiry) : null;
+  return { number, expiry: expiry ?? null };
 }

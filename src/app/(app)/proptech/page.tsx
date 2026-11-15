@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Building2, ImageOff, Loader2, Plus } from 'lucide-react';
+import { AlertTriangle, Building2, ImageOff, Loader2, Plus } from 'lucide-react';
 import { api, ErrorBar, PortalChip, StatusChip, ago } from '@/components/proptech/ui';
 import { LISTING_STATUSES, PORTAL_LABEL, PORTALS, PROPERTY_TYPE_LABEL, fmtAed, type ListingSummary } from '@/lib/proptech/types';
 
@@ -13,7 +13,12 @@ export default function AutoListingPage() {
   const [f, setF] = useState({ status: '', portal: '', agent: '' });
   const [error, setError] = useState('');
 
+  const [attention, setAttention] = useState({ urgent: 0, soon: 0 });
   useEffect(() => { api<{ agents: Agent[] }>('/api/proptech/agents').then((r) => setAgents(r.agents)).catch(() => {}); }, []);
+  // Permit / Form A problems, so nobody misses an expiry.
+  useEffect(() => {
+    api<{ summary: { urgent: number; expiringSoon: number } }>('/api/proptech/compliance').then((r) => setAttention({ urgent: r.summary.urgent, soon: r.summary.expiringSoon })).catch(() => {});
+  }, []);
   useEffect(() => {
     const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v)).toString();
     api<{ listings: ListingSummary[] }>(`/api/proptech/listings${qs ? `?${qs}` : ''}`).then((r) => setRows(r.listings)).catch((e: Error) => setError(e.message));
@@ -30,6 +35,14 @@ export default function AutoListingPage() {
         </div>
         <Link href="/proptech/new" className="btn btn-primary"><Plus size={16} />New listing</Link>
       </div>
+
+      {(attention.urgent > 0 || attention.soon > 0) && (
+        <Link href="/proptech/compliance" className={`mb-4 flex items-center gap-2 rounded-xl px-4 py-3 text-sm ${attention.urgent ? 'bg-bad-soft text-bad' : 'bg-warn-soft text-warn'}`}>
+          <AlertTriangle size={16} className="shrink-0" />
+          <span className="flex-1">{attention.urgent ? `${attention.urgent} listing${attention.urgent > 1 ? 's need' : ' needs'} action now (permit or Form A expired or expiring while live). ` : ''}{attention.soon ? `${attention.soon} permit or Form A expir${attention.soon > 1 ? 'e' : 'es'} within 14 days.` : ''}</span>
+          <span className="font-semibold underline">Open Compliance</span>
+        </Link>
+      )}
 
       <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <select className="input" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} aria-label="Filter by status">

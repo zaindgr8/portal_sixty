@@ -15,10 +15,10 @@ export type PostMethod = "api" | "feed" | "extension";
 export const PORTAL_STATUSES = ["draft", "queued", "submitted", "live", "rejected", "expired", "unpublished"] as const;
 export type PortalStatus = (typeof PORTAL_STATUSES)[number];
 
-export const SOURCES = ["form_a", "title_deed", "notes", "voice", "photo", "inferred", "agent"] as const;
+export const SOURCES = ["form_a", "title_deed", "permit", "notes", "voice", "photo", "inferred", "agent"] as const;
 export type FieldSource = (typeof SOURCES)[number];
 export const SOURCE_LABEL: Record<FieldSource, string> = {
-  form_a: "Form A", title_deed: "Title deed", notes: "Agent notes", voice: "Voice note", photo: "Photos", inferred: "AI guess", agent: "Edited by you",
+  form_a: "Form A", title_deed: "Title deed", permit: "Trakheesi permit", notes: "Agent notes", voice: "Voice note", photo: "Photos", inferred: "AI guess", agent: "Edited by you",
 };
 
 export const TONES = ["professional", "luxury", "investor"] as const;
@@ -105,6 +105,8 @@ export interface Listing {
   aiTokens: number;
   approvedAt: string | null;
   approvedBy: string | null;
+  /** When the agent said they applied for the Trakheesi permit (compliance tracking). */
+  permitAppliedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -162,6 +164,8 @@ export interface ValidationResult { ok: boolean; issues: ValidationIssue[] }
 /** What the Listing Detail screen gets. */
 export interface ListingBundle {
   listing: Listing;
+  /** Form A → permit → live, with expiry alerts. */
+  compliance: import("./compliance").Compliance;
   media: ListingMedia[];
   inputs: { agentNotes: string; voiceTranscript: string };
   owner: OwnerPii | null;

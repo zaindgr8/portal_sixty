@@ -261,11 +261,12 @@ function DraftEditor({ draftKey, initialId, onState, onError }: { draftKey: stri
         {okPhotos.length > 0 && okPhotos.length < MIN_PHOTOS && <p className="mt-2 text-xs text-warn">Add {MIN_PHOTOS - okPhotos.length} more photo{MIN_PHOTOS - okPhotos.length > 1 ? 's' : ''} (portals need at least {MIN_PHOTOS}).</p>}
       </Section>
 
-      <Section icon={FileText} title="Title deed, Oqood, owner ID or floor plan" badge="Optional" hint="Helps the AI confirm the unit, size and owner. The owner's ID is kept private and never published.">
+      <Section icon={FileText} title="Title deed, Oqood, owner ID, permit or floor plan" badge="Optional" hint="Helps the AI confirm the unit, size and owner, and reads the Trakheesi permit if you already have one. The owner's ID is kept private and never published.">
         <div className="flex flex-wrap gap-2">
           <DropZone accept={ACCEPT_DOC} label="Title deed" small onFiles={(f) => addFiles(f, 'document', 'title_deed')} />
           <DropZone accept={ACCEPT_DOC} label="Oqood" small onFiles={(f) => addFiles(f, 'document', 'oqood')} />
           <DropZone accept={ACCEPT_DOC} label="Owner ID" small onFiles={(f) => addFiles(f, 'document', 'owner_id')} />
+          <DropZone accept={ACCEPT_DOC} label="Trakheesi permit" small onFiles={(f) => addFiles(f, 'document', 'permit')} />
           <DropZone accept={ACCEPT_DOC} label="Floor plan" small onFiles={(f) => addFiles(f, 'floorplan')} />
         </div>
         <FileList items={docs} onRemove={(d) => removeFile(d, 'doc')} />

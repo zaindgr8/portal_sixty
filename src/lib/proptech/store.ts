@@ -23,7 +23,7 @@ export function toListing(r: Row): Listing {
     tone: r.tone ?? "professional",
     fieldConfidence: r.field_confidence ?? {}, fieldSource: r.field_source ?? {}, aiQuestions: r.ai_questions ?? [], progress: r.progress ?? {},
     aiCostUsd: Number(r.ai_cost_usd ?? 0), aiTokens: Number(r.ai_tokens ?? 0),
-    approvedAt: r.approved_at ?? null, approvedBy: r.approved_by ?? null, createdAt: r.created_at, updatedAt: r.updated_at,
+    approvedAt: r.approved_at ?? null, approvedBy: r.approved_by ?? null, permitAppliedAt: r.permit_applied_at ?? null, createdAt: r.created_at, updatedAt: r.updated_at,
   } as Record<string, unknown>;
   for (const f of LISTING_FIELDS) l[f] = r[f] ?? null;
   for (const f of ["bedrooms", "bathrooms", "size_sqft", "plot_sqft", "parking", "price", "cheques", "service_charge"]) l[f] = num(r[f]);

@@ -71,7 +71,7 @@ const compactConv = (c: Conv) => ({
 const GET_ALLOW = [
   /^\/api\/me$/, /^\/api\/overview$/, /^\/api\/workspace$/, /^\/api\/workspace\/invites$/, /^\/api\/onboarding$/,
   /^\/api\/whatsapp\/(conversations|leads|stats|team|settings|templates|history|scoring|agent-events)(\/[^/]+(\/notes)?)?$/,
-  /^\/api\/voice\/(calls|leads|batches|config)(\/[^/]+)?$/, /^\/api\/proptech\/(listings|agents|portals)(\/[^/]+(\/permit)?)?$/, /^\/api\/instagram$/, /^\/api\/whatsapp-cloud$/,
+  /^\/api\/voice\/(calls|leads|batches|config)(\/[^/]+)?$/, /^\/api\/proptech\/(listings|agents|portals)(\/[^/]+(\/permit)?)?$/, /^\/api\/proptech\/compliance$/, /^\/api\/instagram$/, /^\/api\/whatsapp-cloud$/,
 ];
 /** Paths the generic write tool may change (always behind a confirmation). */
 const WRITE_ALLOW = [
@@ -265,6 +265,15 @@ export const TOOLS: Tool[] = [
   },
 
   // ---------- PropTech ----------
+  {
+    name: "get_compliance", kind: "read", needs: "proptech",
+    description: "Compliance: each listing's Form A → Trakheesi permit → live stage, permit and Form A expiry dates, and alerts (expired or expiring within 14 days, waiting for a permit). Most urgent first.",
+    params: obj({}),
+    run: async (_a, ctx) => {
+      const r = (await get(ctx, "/api/proptech/compliance")) as { items: { id: string; title: string; compliance: { stage: string; level: string; formA: unknown; permit: unknown; live: string[]; alerts: { text: string }[] } }[]; summary: unknown };
+      return { summary: r.summary, items: r.items.slice(0, 40).map((i) => ({ id: i.id, title: i.title, stage: i.compliance.stage, level: i.compliance.level, formA: i.compliance.formA, permit: i.compliance.permit, live: i.compliance.live, alerts: i.compliance.alerts.map((a) => a.text) })) };
+    },
+  },
   {
     name: "list_listings", kind: "read", needs: "proptech", description: "Auto Listing: property listings with status, price and portal status.",
     params: obj({ status: str(undefined, ["draft", "processing", "review", "approved", "published", "archived", "failed"]), portal: str(undefined, ["propertyfinder", "bayut", "mock"]), agent: str("Agent username") }),

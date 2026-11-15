@@ -267,3 +267,6 @@ on conflict (id) do nothing;
 -- Only the server (secret key) may claim jobs.
 revoke execute on function public.proptech_claim_jobs(integer, integer) from public, anon, authenticated;
 alter function public.proptech_claim_jobs(integer, integer) set search_path = public;
+
+-- Compliance tracking: when the agent applied for the Trakheesi permit (added Nov 2026).
+alter table public.listings add column if not exists permit_applied_at timestamptz;

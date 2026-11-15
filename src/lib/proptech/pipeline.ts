@@ -1,7 +1,7 @@
 import "server-only";
 import sharp from "sharp";
 import { aiJson, type AiFile } from "./gemini";
-import { cleanOwner, copyResponseSchema, copySchema, extractResponseSchema, extractionSchema, photoAnalysisSchema, photoResponseSchema, voiceResponseSchema, voiceSchema, type ExtractedField } from "./schema";
+import { cleanOwner, readPermit, copyResponseSchema, copySchema, extractResponseSchema, extractionSchema, photoAnalysisSchema, photoResponseSchema, voiceResponseSchema, voiceSchema, type ExtractedField } from "./schema";
 import { mergeFields } from "./merge";
 import { copyFacts, withLength } from "./copy";
 import { missingQuestions } from "./questions";
@@ -10,7 +10,7 @@ import { addCost, getInputs, getListing, getListingRow, listMediaRows, readOwner
 import { loadPrompt } from "./prompts";
 import type { Listing, ListingField, Progress, Tone } from "./types";
 
-const DOC_LABEL: Record<string, string> = { title_deed: "Title deed", oqood: "Oqood", owner_id: "Owner's Emirates ID or passport" };
+const DOC_LABEL: Record<string, string> = { title_deed: "Title deed", oqood: "Oqood", owner_id: "Owner's Emirates ID or passport", permit: "Trakheesi advertising permit" };
 
 // The AI step of a new listing. Runs as a background job; the review screen polls `progress`.
 //   1. In parallel: read Form A + documents, analyse photos, transcribe the voice note.
@@ -131,7 +131,7 @@ export async function processListing(ws: string, listingId: string) {
   // ---- 3. merge ----
   await setProgress(ws, listingId, { step: "merging", label: "Checking the details…", done, startedAt: started });
   const formA = docs.find((d) => d.m.kind === "form_a")?.m.id;
-  const deed = docs.find((d) => d.m.kind === "document" && d.m.docType !== "owner_id")?.m.id;
+  const deed = docs.find((d) => d.m.kind === "document" && d.m.docType !== "owner_id" && d.m.docType !== "permit")?.m.id;
   const candidates: ExtractedField[] = [...((extraction?.fields ?? []) as ExtractedField[]), ...((voice?.facts ?? []).map((f) => ({ ...f, source: "voice" })) as ExtractedField[])];
   const merged = mergeFields(candidates, [extraction?.amenities ?? [], voice?.amenities ?? []], { form_a: formA, title_deed: deed });
 
@@ -151,6 +151,15 @@ export async function processListing(ws: string, listingId: string) {
     patch.amenities = merged.amenities;
     conf.amenities = 0.8;
     src.amenities = { source: "notes" };
+  }
+  // Trakheesi permit, only when a permit document was uploaded and the agent hasn't typed one in.
+  const permitDoc = docs.find((d) => d.m.kind === "document" && d.m.docType === "permit");
+  const permit = permitDoc ? readPermit(extraction?.permit) : null;
+  if (permit && (current.fieldSource.permit_number as { source?: string } | undefined)?.source !== "agent") {
+    patch.permit_number = permit.number;
+    conf.permit_number = 0.95;
+    src.permit_number = { source: "permit", mediaId: permitDoc!.m.id };
+    if (permit.expiry) { patch.permit_expiry = permit.expiry; conf.permit_expiry = 0.95; src.permit_expiry = { source: "permit", mediaId: permitDoc!.m.id }; }
   }
   // What's already saved wins (an agent may have corrected it); the documents only fill the gaps.
   // cleanOwner also drops an earlier bad value (e.g. a title deed owner number saved as the phone).

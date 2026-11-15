@@ -4,6 +4,7 @@ import {
   getInputs, getListingRow, listAgents, listAudit, listConnections, listMediaRows, listPortalEvents, listPortalListings, listUsage, maskOwner, readOwner, toListing, toMedia,
 } from "./store";
 import { portalMethodOptions, resolveMethod, validateFor } from "./publish";
+import { complianceFor } from "./compliance";
 import { FIELD_LABEL } from "./validate";
 import { PROPERTY_TYPE_LABEL, type Listing, type ListingBundle, type OwnerPii, type Portal } from "./types";
 import type { Ctx } from "./access";
@@ -34,7 +35,8 @@ export async function loadBundle(c: Ctx, id: string): Promise<ListingBundle | nu
     listing, media,
     inputs: { agentNotes: String(inputs.agent_notes ?? ""), voiceTranscript: String(inputs.voice_transcript ?? "") },
     owner: c.admin ? owner : maskOwner(owner), ownerMasked: !c.admin,
-    portals, connectedPortals: connected, methods, methodOptions: methodOpts.options, validation, events, audit: auditLog, usage, canAdmin: c.admin,
+    portals, connectedPortals: connected, methods, methodOptions: methodOpts.options, validation,
+    compliance: complianceFor(listing, { hasFormA: mediaRows.some((r) => r.kind === "form_a" && !r.removed), portals }), events, audit: auditLog, usage, canAdmin: c.admin,
   };
 }
 

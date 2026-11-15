@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { AiProgress, ErrorBar, PortalChip, StatusChip, ago, api, uploadFile, usd, useBundle } from '@/components/proptech/ui';
 import { MAX_PHOTOS, checkUpload, type UploadKind } from '@/lib/proptech/files';
+import { STAGE_LABEL, WARN_DAYS, type Stage } from '@/lib/proptech/compliance';
 import { FieldRow, GROUPS, enumLabel } from '@/components/proptech/fields';
 import { PhotoGrid } from '@/components/proptech/photos';
 import { ManualPost } from '@/components/proptech/ManualPost';
@@ -95,7 +96,7 @@ export default function ListingDetailPage() {
         </div>
 
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <Permit b={b} saveField={saveField} setError={setError} />
+          <Permit b={b} saveField={saveField} setError={setError} reload={reload} />
           <Publish b={b} setB={setB} setError={setError} />
           <ManualPost b={b} setB={setB} setError={setError} />
         </aside>
@@ -142,6 +143,7 @@ const ADD_DOCS: { label: string; kind: UploadKind; docType?: string }[] = [
   { label: 'Title deed', kind: 'document', docType: 'title_deed' },
   { label: 'Oqood', kind: 'document', docType: 'oqood' },
   { label: 'Owner ID', kind: 'document', docType: 'owner_id' },
+  { label: 'Trakheesi permit', kind: 'document', docType: 'permit' },
   { label: 'Floor plan', kind: 'floorplan' },
 ];
 
@@ -201,7 +203,7 @@ function Media({ b, reload, setError }: { b: ListingBundle; reload: () => void; 
       <PhotoGrid items={photos} onMove={(f, t) => move(f, t)} onCover={(pid) => patch({ cover: pid })} onRemove={(pid) => patch({ remove: pid })} onRestore={(pid) => patch({ restore: pid })} />
       {docs.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-2 text-sm">
-          {docs.map((d) => <li key={d.id}><a href={d.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 hover:border-brand"><Upload size={13} className="rotate-180" />{{ form_a: 'Form A', document: d.docType === 'oqood' ? 'Oqood' : d.docType === 'owner_id' ? 'Owner ID' : 'Title deed', floorplan: 'Floor plan', audio: 'Voice note', photo: 'Photo' }[d.kind]}</a></li>)}
+          {docs.map((d) => <li key={d.id}><a href={d.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 hover:border-brand"><Upload size={13} className="rotate-180" />{{ form_a: 'Form A', document: d.docType === 'oqood' ? 'Oqood' : d.docType === 'owner_id' ? 'Owner ID' : d.docType === 'permit' ? 'Trakheesi permit' : 'Title deed', floorplan: 'Floor plan', audio: 'Voice note', photo: 'Photo' }[d.kind]}</a></li>)}
         </ul>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3 text-sm">
@@ -280,9 +282,17 @@ function Notes({ b, save }: { b: ListingBundle; save: (p: object) => void }) {
   );
 }
 
-function Permit({ b, saveField, setError }: { b: ListingBundle; saveField: (f: ListingField, v: unknown) => void; setError: (m: string) => void }) {
+const STEPS: { key: Stage; label: string }[] = [
+  { key: 'form_a', label: 'Form A' }, { key: 'apply', label: 'Apply' }, { key: 'ready', label: 'Permit' }, { key: 'live', label: 'Live' },
+];
+const STEP_INDEX: Record<Stage, number> = { form_a: 0, apply: 1, waiting: 1, ready: 2, live: 3 };
+
+function Permit({ b, saveField, setError, reload }: { b: ListingBundle; saveField: (f: ListingField, v: unknown) => void; setError: (m: string) => void; reload: () => void }) {
   const l = b.listing;
+  const c = b.compliance;
   const [copied, setCopied] = useState(false);
+  const [uploading, setUploading] = useState('');
+  const permitInput = useRef<HTMLInputElement>(null);
   const required = new Set<string>(['permit_number', 'permit_expiry', 'agency_orn', 'agent_brn']);
   const copy = async () => {
     try {
@@ -292,12 +302,47 @@ function Permit({ b, saveField, setError }: { b: ListingBundle; saveField: (f: L
       setTimeout(() => setCopied(false), 2000);
     } catch (e) { setError(e instanceof Error ? e.message : 'Copy failed'); }
   };
+  const markApplied = (applied: boolean) => api(`/api/proptech/listings/${l.id}/permit`, { method: 'POST', json: { applied } }).then(reload).catch((e: Error) => setError(e.message));
+  // Upload the permit PDF or screenshot; the AI reads its number and expiry (anything you typed stays).
+  const uploadPermit = async (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f) return;
+    try {
+      setUploading('Uploading the permit…');
+      await uploadFile(l.id, f, f.name, 'document', { docType: 'permit' });
+      setUploading('Reading the permit…');
+      await api(`/api/proptech/listings/${l.id}/process`, { method: 'POST', json: {} });
+      reload();
+    } catch (e) { setError(e instanceof Error ? e.message : 'Upload failed'); }
+    finally { setUploading(''); }
+  };
+  const at = STEP_INDEX[c.stage];
   return (
     <section className="card p-4">
       <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck size={16} className="text-brand" />Dubai permit</h2>
-      <p className="mb-2 text-xs text-ink-3">Apply on Trakheesi yourself, then enter the permit here. Publishing stays locked until it&apos;s valid.</p>
+      <p className="mb-3 text-xs text-ink-3">Form A, then the Trakheesi permit, then the portals. Publishing stays locked until the permit is valid, and Sixty warns you {WARN_DAYS} days before anything expires.</p>
+      <ol className="mb-3 grid grid-cols-4 gap-1 text-center text-[11px]">
+        {STEPS.map((s, i) => (
+          <li key={s.key} className={`rounded-lg px-1 py-1.5 ${i < at ? 'bg-ok-soft text-ok' : i === at ? 'bg-brand/10 font-semibold text-brand' : 'bg-panel-2 text-ink-3'}`}>
+            {i < at ? '✓ ' : ''}{s.label}
+          </li>
+        ))}
+      </ol>
+      <p className="mb-2 text-sm font-medium">{STAGE_LABEL[c.stage]}{c.stage === 'waiting' && c.permit.waitingDays !== null ? ` · applied ${c.permit.waitingDays === 0 ? 'today' : `${c.permit.waitingDays} day${c.permit.waitingDays > 1 ? 's' : ''} ago`}` : ''}</p>
+      {c.alerts.length > 0 && (
+        <ul className="mb-3 space-y-1.5">
+          {c.alerts.map((a, k) => <li key={k} className={`flex gap-1.5 rounded-lg px-2.5 py-2 text-xs ${a.level === 'bad' ? 'bg-bad-soft text-bad' : 'bg-warn-soft text-warn'}`}><AlertTriangle size={13} className="mt-0.5 shrink-0" />{a.text}</li>)}
+        </ul>
+      )}
       {(['permit_number', 'permit_expiry', 'agency_orn', 'agent_brn'] as ListingField[]).map((f) => <FieldRow key={f} l={l} f={f} required={required} media={b.media} onSave={saveField} />)}
+      <input ref={permitInput} type="file" accept={DOC_ACCEPT} className="hidden" onChange={(e) => { uploadPermit(e.target.files); e.target.value = ''; }} />
       <div className="mt-2 grid gap-2">
+        {(c.stage === 'apply' || c.stage === 'waiting') && (
+          c.stage === 'apply'
+            ? <button className="btn btn-primary" onClick={() => markApplied(true)}><Send size={15} />I&apos;ve applied on Trakheesi</button>
+            : <button className="btn btn-ghost text-xs" onClick={() => markApplied(false)}>Not applied yet (undo)</button>
+        )}
+        <button className="btn" disabled={Boolean(uploading)} onClick={() => permitInput.current?.click()}>{uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}{uploading || 'Upload permit (AI reads it)'}</button>
         <button className="btn" onClick={copy}>{copied ? <CheckCircle2 size={15} className="text-ok" /> : <ClipboardCopy size={15} />}{copied ? 'Copied' : 'Copy permit application data'}</button>
         <a className="btn" href={`/api/proptech/listings/${l.id}/bundle`}><Download size={15} />Download bundle (Form A + details PDF)</a>
       </div>

@@ -46,6 +46,7 @@ export function proptechSection(user: SessionUser): NavSection {
   const items: NavItem[] = [
     { href: '/proptech', label: 'Auto Listing', icon: HomeIcon, hint: 'Every listing, its status and portals' },
     { href: '/proptech/new', label: 'New Listing', icon: FilePlus2, hint: 'Upload Form A and photos, the AI does the rest' },
+    { href: '/proptech/compliance', label: 'Compliance', icon: ShieldCheck, hint: 'Form A, Trakheesi permits and expiry alerts' },
   ];
   items.push({ href: '/proptech/extension', label: 'Chrome extension', icon: Puzzle, hint: 'Post to portals from your own Chrome' });
   if (user.role === 'owner' || user.role === 'admin' || user.platformAdmin) items.push({ href: '/proptech/settings', label: 'Portal Settings', icon: PlugZap, hint: 'Property Finder, Bayut and agent numbers' });
