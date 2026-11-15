@@ -3,9 +3,9 @@ import { signUrls } from "./storage";
 import {
   getInputs, getListingRow, listAgents, listAudit, listConnections, listMediaRows, listPortalEvents, listPortalListings, listUsage, maskOwner, readOwner, toListing, toMedia,
 } from "./store";
-import { portalMethods, validateFor } from "./publish";
+import { portalMethodOptions, resolveMethod, validateFor } from "./publish";
 import { FIELD_LABEL } from "./validate";
-import { PROPERTY_TYPE_LABEL, type Listing, type ListingBundle, type OwnerPii } from "./types";
+import { PROPERTY_TYPE_LABEL, type Listing, type ListingBundle, type OwnerPii, type Portal } from "./types";
 import type { Ctx } from "./access";
 
 /** Everything the Listing Detail screen shows. Owner data is masked unless the viewer is an agency admin. */
@@ -14,12 +14,14 @@ export async function loadBundle(c: Ctx, id: string): Promise<ListingBundle | nu
   const row = await getListingRow(ws, id);
   if (!row) return null;
   const listing = toListing(row);
-  const [mediaRows, inputs, portals, methods, events, auditLog, usage] = await Promise.all([
+  const [mediaRows, inputs, portals, methodOpts, events, auditLog, usage] = await Promise.all([
     // The owner's ID card is for admins only, like the owner's details.
-    listMediaRows(ws, id).then((rows) => (c.admin ? rows : rows.filter((r) => r.doc_type !== "owner_id"))), getInputs(ws, id), listPortalListings(ws, id), portalMethods(ws),
+    listMediaRows(ws, id).then((rows) => (c.admin ? rows : rows.filter((r) => r.doc_type !== "owner_id"))), getInputs(ws, id), listPortalListings(ws, id), portalMethodOptions(ws),
     c.admin ? listPortalEvents(ws, id) : Promise.resolve([]), listAudit(ws, id), listUsage(ws, id),
   ]);
-  const connected = Object.keys(methods) as (keyof typeof methods)[];
+  // How each portal is (or would be) posted for this listing: how it went out before, else the agency default.
+  const methods = Object.fromEntries(Object.keys(methodOpts.options).map((p) => [p, resolveMethod(p as Portal, methodOpts, undefined, portals.find((x) => x.portal === p)?.externalId)])) as ListingBundle["methods"];
+  const connected = Object.keys(methodOpts.options) as Portal[];
   const urls = await signUrls(ws, mediaRows.map((r) => String(r.path)));
   const media = mediaRows.map((r) => ({ ...toMedia(r), url: urls.get(String(r.path)) }));
   const validation = await validateFor(ws, listing, portals.map((p) => p.portal).filter((p) => connected.includes(p)));
@@ -32,7 +34,7 @@ export async function loadBundle(c: Ctx, id: string): Promise<ListingBundle | nu
     listing, media,
     inputs: { agentNotes: String(inputs.agent_notes ?? ""), voiceTranscript: String(inputs.voice_transcript ?? "") },
     owner: c.admin ? owner : maskOwner(owner), ownerMasked: !c.admin,
-    portals, connectedPortals: connected, methods, validation, events, audit: auditLog, usage, canAdmin: c.admin,
+    portals, connectedPortals: connected, methods, methodOptions: methodOpts.options, validation, events, audit: auditLog, usage, canAdmin: c.admin,
   };
 }
 

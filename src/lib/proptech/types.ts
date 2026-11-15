@@ -170,6 +170,8 @@ export interface ListingBundle {
   connectedPortals: Portal[];
   /** How each portal is reached: our API, the Bayut feed, or the Chrome extension. */
   methods: Partial<Record<Portal, PostMethod>>;
+  /** Every way each portal can be posted (the Chrome extension is always one for PF and Bayut). */
+  methodOptions: Partial<Record<Portal, PostMethod[]>>;
   validation: ValidationResult;
   events: PortalEvent[];
   audit: AuditEntry[];

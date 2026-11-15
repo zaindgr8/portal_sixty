@@ -12,9 +12,10 @@ import { PhotoGrid } from '@/components/proptech/photos';
 import { ManualPost } from '@/components/proptech/ManualPost';
 import { chipValue } from '@/lib/proptech/questions';
 import { DESC_MAX, DESC_MIN, FIELD_LABEL, TITLE_MAX, copyProblems, permitReady, requiredFields } from '@/lib/proptech/validate';
-import { PORTAL_LABEL, TONES, fmtAed, type ListingBundle, type ListingField, type Portal, type Tone, type ValidationIssue } from '@/lib/proptech/types';
+import { PORTAL_LABEL, TONES, fmtAed, type ListingBundle, type ListingField, type Portal, type PostMethod, type Tone, type ValidationIssue } from '@/lib/proptech/types';
 
 const METHOD_LABEL: Record<string, string> = { api: 'Posted by the portal API', feed: 'Sent in your Bayut feed', extension: 'Posted with the Sixty Chrome extension' };
+const METHOD_SHORT: Record<string, string> = { api: 'API', feed: 'Bayut feed', extension: 'Chrome extension' };
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -309,6 +310,8 @@ function Publish({ b, setB, setError }: { b: ListingBundle; setB: (x: ListingBun
   const status = useMemo(() => new Map(b.portals.map((p) => [p.portal, p])), [b.portals]);
   const [pick, setPick] = useState<Portal[]>(() => b.connectedPortals.filter((p) => !status.get(p) || ['draft', 'unpublished', 'rejected'].includes(status.get(p)!.status)).slice(0, 2));
   const [busy, setBusy] = useState(false);
+  // How each portal will be posted this time. The Chrome extension is always one of the choices.
+  const [how, setHow] = useState<Partial<Record<Portal, PostMethod>>>(() => ({ ...b.methods }));
   const [issues, setIssues] = useState<ValidationIssue[] | null>(null);
   const [confirmNeeded, setConfirmNeeded] = useState<ValidationIssue[] | null>(null);
   const permitOk = permitReady(l);
@@ -319,7 +322,7 @@ function Publish({ b, setB, setError }: { b: ListingBundle; setB: (x: ListingBun
   const go = async (portals: Portal[], action: 'publish' | 'update', confirm = false) => {
     setBusy(true); setIssues(null);
     try {
-      const res = await fetch(`/api/proptech/listings/${l.id}/publish`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ portals, action, confirm }) });
+      const res = await fetch(`/api/proptech/listings/${l.id}/publish`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ portals, action, confirm, methods: how }) });
       const data = await res.json();
       if (res.status === 409) setConfirmNeeded((data.issues as ValidationIssue[]).filter((i) => i.level === 'confirm'));
       else if (!res.ok) { setIssues(data.issues ?? null); if (!data.issues) setError(data.error); }
@@ -373,8 +376,17 @@ function Publish({ b, setB, setError }: { b: ListingBundle; setB: (x: ListingBun
                 {PORTAL_LABEL[p]}
                 {s && <span className="ml-auto"><PortalChip portal={p} status={s.status} short /></span>}
               </label>
-              <p className="mt-0.5 pl-6 text-[11px] text-ink-3">{METHOD_LABEL[b.methods[p] ?? 'api']}</p>
-              {s && b.methods[p] === 'extension' && s.status === 'queued' && <p className="mt-1 pl-6 text-xs text-info">Waiting in the Sixty Chrome extension. Open it in Chrome and press Post.</p>}
+              {(b.methodOptions?.[p]?.length ?? 0) > 1 ? (
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-6 text-[11px]">
+                  <span className="text-ink-3">Post with</span>
+                  <div className="flex rounded-md border border-line p-0.5">
+                    {b.methodOptions[p]!.map((m) => (
+                      <button key={m} type="button" onClick={() => setHow({ ...how, [p]: m })} className={`rounded px-2 py-0.5 ${how[p] === m ? 'bg-panel-2 font-semibold text-ink' : 'text-ink-2'}`}>{METHOD_SHORT[m]}</button>
+                    ))}
+                  </div>
+                </div>
+              ) : <p className="mt-0.5 pl-6 text-[11px] text-ink-3">{METHOD_LABEL[how[p] ?? b.methods[p] ?? 'api']}</p>}
+              {s && s.externalId?.startsWith('ext:') && s.status === 'queued' && <p className="mt-1 pl-6 text-xs text-info">Waiting in the Sixty Chrome extension. Open it in Chrome and press Post.</p>}
               {s?.externalId && s.externalId !== 'ext:pending' && <p className="mt-1 truncate pl-6 text-xs text-ink-3">{/^(ext|manual):/.test(s.externalId) ? <>Posted by {s.externalId.startsWith('ext:') ? 'extension' : 'hand'}{/^(ext|manual):https?:/.test(s.externalId) && <> · <a className="underline" href={s.externalId.replace(/^(ext|manual):/, '')} target="_blank" rel="noreferrer">view</a></>}</> : <>ID {s.externalId}</>}{s.lastSyncedAt ? ` · ${ago(s.lastSyncedAt)}` : ''}</p>}
               {s?.status === 'rejected' && s.lastError && (
                 <div className="mt-2 rounded-lg bg-bad-soft px-2.5 py-2 text-xs text-bad">

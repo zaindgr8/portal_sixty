@@ -5,6 +5,7 @@ import { bayutAdapter, bayutMapping, forgetFeed } from "./adapters/bayut";
 import { pfMapping, pfMissing, propertyFinderAdapter } from "./adapters/propertyfinder";
 import type { AdapterContext, PortalAdapter, PublishInput } from "./adapters/types";
 import { signUrls } from "./storage";
+import { q, sb } from "../supabase";
 import {
   audit, getConnection, getListing, listConnections, listMediaRows, listPortalListings, logPortalEvent, setPortalListing, toMedia, updateListing,
   type PortalConnection,
@@ -21,19 +22,48 @@ export function portalRules(): Partial<Record<Portal, PortalRules>> {
 }
 
 /**
- * How each portal is reached. Property Finder goes through its API once keys are saved and the API mapping is
- * verified; Bayut through the XML feed once it's switched on. Until then both are posted by the agent's Chrome
- * with the Sixty extension. The demo portal is available until a real one is connected (and always in dev).
+ * How each portal can be reached, and the default. The Sixty Chrome extension always works for Property Finder
+ * and Bayut, so an agent can post either one from their own Chrome at any time. Property Finder can also go
+ * through its API once keys are saved and the mapping is verified; Bayut through the XML feed once it's on.
+ * Bayut defaults to the feed only after Bayut has actually read it (until then a feed listing would sit unseen).
+ * The demo portal is available until a real one is connected (and always in dev).
  */
-export async function portalMethods(ws: string): Promise<Partial<Record<Portal, PostMethod>>> {
+export async function portalMethodOptions(ws: string) {
   const conns = await listConnections(ws);
   const get = (p: Portal) => conns.find((c) => c.portal === p);
   const pf = get("propertyfinder"), bayut = get("bayut"), mockRow = get("mock");
   const pfApi = Boolean(pf?.enabled && pf.credentials?.apiKey && pf.credentials?.apiSecret && !pfMissing().length);
   const feed = Boolean(bayut?.enabled && bayut.feedToken);
+  const fetched = feed
+    ? Boolean((await sb<{ last_fetched_at: string | null }[]>(`bayut_feed_cache?workspace_id=eq.${q(ws)}&select=last_fetched_at`).catch(() => []))[0]?.last_fetched_at)
+    : false;
   const realOn = Boolean(pf?.enabled || bayut?.enabled);
   const mock = mockRow ? mockRow.enabled : !realOn || process.env.NODE_ENV !== "production";
-  return { propertyfinder: pfApi ? "api" : "extension", bayut: feed ? "feed" : "extension", ...(mock ? { mock: "api" as const } : {}) };
+  const options: Partial<Record<Portal, PostMethod[]>> = {
+    propertyfinder: pfApi ? ["api", "extension"] : ["extension"],
+    bayut: feed ? ["extension", "feed"] : ["extension"],
+    ...(mock ? { mock: ["api"] as PostMethod[] } : {}),
+  };
+  const defaults: Partial<Record<Portal, PostMethod>> = {
+    propertyfinder: pfApi ? "api" : "extension",
+    bayut: feed && fetched ? "feed" : "extension",
+    ...(mock ? { mock: "api" as const } : {}),
+  };
+  return { options, defaults };
+}
+
+export async function portalMethods(ws: string): Promise<Partial<Record<Portal, PostMethod>>> {
+  return (await portalMethodOptions(ws)).defaults;
+}
+
+/** The method for one portal: the agent's choice if that portal offers it, else how it was posted before, else the default. */
+export function resolveMethod(
+  p: Portal, o: { options: Partial<Record<Portal, PostMethod[]>>; defaults: Partial<Record<Portal, PostMethod>> },
+  choice?: PostMethod, existingExternalId?: string | null,
+): PostMethod | undefined {
+  if (choice && o.options[p]?.includes(choice)) return choice;
+  if (isAgentPosted(existingExternalId ?? null) && o.options[p]?.includes("extension")) return "extension";
+  return o.defaults[p];
 }
 
 /** Portals this agency can publish to (every portal with a way in). */
@@ -65,10 +95,16 @@ function ctxFor(ws: string, listingId: string, conn: PortalConnection): AdapterC
 }
 
 /** Approve and queue one publish job per portal. Returns the validation result (nothing is queued if it fails). */
-export async function requestPublish(ws: string, actor: string, listingId: string, portals: Portal[], action: "publish" | "update" = "publish", confirm = false) {
+export async function requestPublish(
+  ws: string, actor: string, listingId: string, portals: Portal[], action: "publish" | "update" = "publish", confirm = false,
+  choice: Partial<Record<Portal, PostMethod>> = {},
+) {
   const l = await getListing(ws, listingId);
   if (!l) throw new Error("Listing not found.");
-  const methods = await portalMethods(ws);
+  const o = await portalMethodOptions(ws);
+  const rows = await listPortalListings(ws, l.id);
+  const methods: Partial<Record<Portal, PostMethod>> = {};
+  for (const p of portals) methods[p] = resolveMethod(p, o, choice[p], rows.find((r) => r.portal === p)?.externalId);
   const chosen = [...new Set(portals)].filter((p) => methods[p]);
   if (!chosen.length) return { ok: false, issues: [{ level: "error" as const, message: "Pick at least one connected portal." }] };
   const v = await validateFor(ws, l, chosen);
@@ -95,7 +131,7 @@ export async function requestPublish(ws: string, actor: string, listingId: strin
     await setPortalListing(ws, l.id, p, { status: "queued", lastError: null });
     await enqueue(ws, action === "update" ? "portal_update" : "portal_publish", { listingId: l.id, payload: { portal: p, actor } });
   }
-  await audit(ws, l.id, actor, action, { portals: chosen });
+  await audit(ws, l.id, actor, action, { portals: chosen, methods: Object.fromEntries(chosen.map((p) => [p, methods[p]])) });
   return v;
 }
 

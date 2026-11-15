@@ -97,7 +97,7 @@ export function useBundle(id: string) {
     const t = setInterval(() => {
       const cur = ref.current;
       if (!cur || document.visibilityState !== 'visible') return;
-      const busy = cur.listing.status === 'processing' || cur.listing.progress.step === 'writing' || cur.portals.some((p) => (p.status === 'queued' || p.status === 'submitted') && cur.methods?.[p.portal] !== 'extension');
+      const busy = cur.listing.status === 'processing' || cur.listing.progress.step === 'writing' || cur.portals.some((p) => (p.status === 'queued' || p.status === 'submitted') && !p.externalId?.startsWith('ext:'));
       if (busy) load();
     }, 2000);
     return () => clearInterval(t);
