@@ -14,7 +14,8 @@ export function extensionConfig() {
   return JSON.parse(readFileSync(path.join(process.cwd(), "mappings", "extension.json"), "utf8")) as Record<string, unknown>;
 }
 
-/** Everything the extension needs to fill one portal's form for one listing. Never owner data or the unit number. */
+/** Everything the extension needs to fill one portal's form for one listing. Never owner data. The unit number
+ *  is included because both portals require it on their add-listing forms (they don't show it to buyers). */
 export async function extSheet(ws: string, l: Listing, portal: "propertyfinder" | "bayut") {
   const [conns, team, media] = await Promise.all([listConnections(ws), listAgents(ws), listMediaRows(ws, l.id)]);
   const saved = conns.map((x) => x.defaults.agents?.[l.agentId ?? ""]).find(Boolean) ?? {};
@@ -28,6 +29,7 @@ export async function extSheet(ws: string, l: Listing, portal: "propertyfinder" 
     fields: manualSheet(l, portal, agent),
     // Raw values for matching dropdowns and split location fields.
     values: {
+      location: l.building || l.sub_community || l.community, unit_number: l.unit_number, size_unit: l.size_sqft ? "sqft" : null,
       purpose: l.offering_type, category: l.category, property_type: l.property_type, completion_status: l.completion_status,
       emirate: l.emirate, community: l.community, sub_community: l.sub_community, building: l.building,
       bedrooms: l.bedrooms, bathrooms: l.bathrooms, size_sqft: l.size_sqft, plot_sqft: l.plot_sqft, price: l.price, price_type: l.price_type,

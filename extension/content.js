@@ -69,13 +69,58 @@
     catch (e) { state.msg = e.message; }
   }
 
+  const where = () => state.cfg.portals[state.portal]?.addListingHint || "the portal's Add listing page";
+  const valuesFor = () => ({ ...state.sheet.values, reference: state.sheet.listing.reference });
+
+  async function loadPhotos() {
+    const files = [];
+    for (const p of state.sheet.photos) {
+      const r = await send({ type: "photo", listingId: state.job.listingId, mediaId: p.id });
+      const bin = atob(r.base64), arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      files.push(new File([arr], p.name, { type: r.type }));
+    }
+    return files;
+  }
+
+  // The whole form: every step, photos, Next, until only the portal's Submit is left.
+  async function fillAll() {
+    state.running = true;
+    state.msg = "Filling the form…"; render();
+    const rules = state.cfg.portals[state.portal];
+    let r;
+    try {
+      r = await window.SixtyFill.autopilot(document, rules, valuesFor(), {
+        getPhotos: loadPhotos,
+        onStep: (s) => { state.msg = `Step ${s.step}: ${s.filled} fields filled${s.photos ? `, ${s.photos} photos added` : ""}…`; render(); },
+      });
+    } catch (e) { r = { status: "error", error: e.message, filled: [] }; }
+    state.running = false;
+    state.result = { filled: r.filled || [], missing: r.missing || [] };
+    const n = (r.filled || []).length, ph = r.photos ? ` and ${r.photos} photos` : "";
+    state.msg = {
+      not_form: `This page isn't a listing form, so nothing was filled. Open ${where()}, then press Fill everything.`,
+      ready_to_submit: `Done: ${n} fields${ph} filled over ${r.steps} step${r.steps > 1 ? "s" : ""}. Check the listing, then press the portal's Submit button yourself.`,
+      end: `Filled ${n} fields${ph}. Check the page, then submit it on the portal.`,
+      blocked: `Filled ${n} fields${ph}, but the portal's Next button is still locked. Fill the highlighted boxes it needs (use Copy below), then press Fill everything again.`,
+      stuck: `Filled ${n} fields${ph}. The portal didn't move to the next step: check for a red message on the page, then press Fill everything again.`,
+      too_many_steps: `Filled ${n} fields${ph}. Stopped after many steps: check the page.`,
+      error: `Something went wrong while filling: ${r.error}`,
+    }[r.status] || `Filled ${n} fields.`;
+    if (r.submit) r.submit.style.outline = "3px solid #bd2120";
+    if (r.status !== "not_form") await send({ type: "report", listingId: state.job.listingId, portal: state.portal, data: { event: "filled", filled: n, missing: r.missing || [], steps: r.steps, photos: r.photos || 0, outcome: r.status, page: location.href } }).catch(() => {});
+    render();
+  }
+
   async function fillNow() {
     const rules = state.cfg.portals[state.portal];
-    const values = { ...state.sheet.values, reference: state.sheet.listing.reference };
-    state.result = window.SixtyFill.fillPage(document, rules, values);
-    state.msg = state.result.filled.length
-      ? `Filled ${state.result.filled.length} fields. Check them (green outline), fill the rest from the list below, then add photos.`
-      : "Couldn't find the listing form on this page. Open the portal's Add listing page, then press Fill again.";
+    state.result = await window.SixtyFill.fillPage(document, rules, valuesFor());
+    state.msg = state.result.notForm
+      ? `This page isn't a listing form, so nothing was filled. Open ${where()}, then press Fill this page.`
+      : state.result.filled.length
+        ? `Filled ${state.result.filled.length} fields. Check them (green outline), fill the rest from the list below, then add photos.`
+        : `Couldn't fill this page. Open ${where()}, then press Fill this page.`;
+    if (state.result.notForm) { render(); return; }
     await send({ type: "report", listingId: state.job.listingId, portal: state.portal, data: { event: "filled", filled: state.result.filled.length, missing: state.result.missing, page: location.href } }).catch(() => {});
     render();
   }
@@ -84,14 +129,7 @@
     btn.disabled = true;
     state.msg = "Loading photos…"; render();
     try {
-      const files = [];
-      for (const p of state.sheet.photos) {
-        const r = await send({ type: "photo", listingId: state.job.listingId, mediaId: p.id });
-        const bin = atob(r.base64), arr = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-        files.push(new File([arr], p.name, { type: r.type }));
-      }
-      const r = window.SixtyFill.attachPhotos(document, files);
+      const r = window.SixtyFill.attachPhotos(document, await loadPhotos());
       state.msg = r.ok ? `Added ${r.count} photo${r.count > 1 ? "s" : ""}${r.single ? " (this box takes one at a time: press again for the next)" : ""}. Cover first.` : r.reason;
     } catch (e) { state.msg = e.message; }
     render();
@@ -134,8 +172,13 @@
       for (const w of state.pick || []) ul.append(el("li", {}, el("span", { class: "v" }, w.title), el("button", { onclick: async () => { await send({ type: "startJob", listingId: w.listingId, portal: w.portal }).catch(() => {}); } }, "Use")));
       body.append(ul);
     } else if (s && !state.done) {
+      const run = el("button", { class: "primary", onclick: fillAll }, state.running ? "Filling…" : "Fill everything");
+      if (state.running) run.disabled = true;
+      body.append(el("div", { class: "row" }, run));
+      const one = el("button", { onclick: fillNow }, "This page only");
+      if (state.running) one.disabled = true;
       body.append(el("div", { class: "row" },
-        el("button", { class: "primary", onclick: fillNow }, "Fill this page"),
+        one,
         el("button", { onclick: (e) => addPhotos(e.currentTarget) }, `Add ${s.photos.length} photos`)));
       const filled = new Set(state.result?.filled || []);
       const list = el("ul");

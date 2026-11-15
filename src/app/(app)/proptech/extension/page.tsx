@@ -15,7 +15,7 @@ export default function ExtensionPage() {
         <h2 className="mb-2 font-semibold text-ink">How posting works</h2>
         <ul className="list-disc space-y-1 pl-5">
           <li><b>Portal API connected</b> (Property Finder keys, Bayut feed): Sixty posts directly when you approve.</li>
-          <li><b>Not connected yet:</b> the listing waits in the extension. Open it, press <b>Post</b>, sign in to the portal, go to its Add listing page and press <b>Fill this page</b> and <b>Add photos</b>. Check, submit, then press <b>I&apos;ve submitted it</b>.</li>
+          <li><b>Not connected yet:</b> the listing waits in the extension. Open it, press <b>Post</b>, sign in (PF Expert or Bayut Profolio), open the Add listing form and press <b>Fill everything</b>: Sixty fills every step, adds the photos and presses Next until only Submit is left. Check, press the portal&apos;s Submit, then <b>I&apos;ve submitted it</b>.</li>
           <li>Every step shows on the listing in Sixty (Portal event log), so the office sees what was posted where.</li>
           <li><b>Next:</b> a Sixty browser that does the posting for you.</li>
         </ul>
