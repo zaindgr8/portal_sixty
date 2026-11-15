@@ -33,7 +33,7 @@ export const GET = handle(async (req: Request, { params }: P) => {
     y -= 14;
   }
 
-  const docs = (await listMediaRows(c.ws.id, id)).filter((m) => !m.removed && (m.kind === "form_a" || m.kind === "document"));
+  const docs = (await listMediaRows(c.ws.id, id)).filter((m) => !m.removed && (m.kind === "form_a" || m.kind === "document") && (c.admin || m.doc_type !== "owner_id"));
   for (const d of docs) {
     const buf = await getObject(c.ws.id, String(d.path));
     try {

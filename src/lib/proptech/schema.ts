@@ -209,3 +209,22 @@ function valid(y: number, mo: number, d: number) {
   const dt = new Date(Date.UTC(y, mo - 1, d));
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d ? dt.toISOString().slice(0, 10) : undefined;
 }
+
+// ---------- owner details from documents ----------
+/**
+ * Keep only owner details that look right. A title deed lists owners as "(6578754) NAME": that number is the
+ * land department's owner number, not a phone, and must not end up in the phone box.
+ */
+export function cleanOwner(o: { name?: string; idNumber?: string; phone?: string; email?: string }) {
+  const out: { name?: string; idNumber?: string; phone?: string; email?: string } = {};
+  const name = o.name?.replace(/^\s*\(\s*\d+\s*\)\s*/, "").replace(/\s+/g, " ").trim();
+  if (name && /[^\d\s()+-]/.test(name)) out.name = name.slice(0, 160);
+  const phone = o.phone?.trim();
+  const digits = phone?.replace(/\D/g, "") ?? "";
+  if (phone && /^[+\d\s().-]+$/.test(phone) && digits.length >= 9 && digits.length <= 15 && !/^\(\s*\d+\s*\)$/.test(phone)) out.phone = phone;
+  const email = o.email?.trim();
+  if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) out.email = email;
+  const id = o.idNumber?.trim();
+  if (id && /\d/.test(id) && id.length <= 40) out.idNumber = id;
+  return out;
+}

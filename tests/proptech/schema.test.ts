@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coerceValue, copySchema, extractionSchema, photoAnalysisSchema, toIsoDate, voiceSchema } from '@/lib/proptech/schema';
+import { cleanOwner, coerceValue, copySchema, extractionSchema, photoAnalysisSchema, toIsoDate, voiceSchema } from '@/lib/proptech/schema';
 import { mergeFields } from '@/lib/proptech/merge';
 import { assembleCopy, fitTitle } from '@/lib/proptech/copy';
 
@@ -117,5 +117,23 @@ describe('copy assembly', () => {
   });
   it('fitTitle never exceeds the limit', () => {
     for (const t of ['Villa | x'.repeat(20), 'A very long single title with no separators at all in it ever']) expect(fitTitle(t).length).toBeLessThanOrEqual(50);
+  });
+});
+
+describe("owner details from documents", () => {
+  it("drops a title deed owner number that landed in the phone box, and strips it from the name", () => {
+    const o = cleanOwner({ name: "(6578754) Test Owner Name", phone: "(6578754) TEST OWNER NAME", email: "" });
+    expect(o.phone).toBeUndefined();
+    expect(o.name).toBe("Test Owner Name");
+    expect(o.email).toBeUndefined();
+  });
+  it("keeps real phones, emails and ID numbers", () => {
+    const o = cleanOwner({ name: "Test Owner", phone: "+971 50 123 4567", email: "owner@example.com", idNumber: "784-1990-1234567-1" });
+    expect(o).toEqual({ name: "Test Owner", phone: "+971 50 123 4567", email: "owner@example.com", idNumber: "784-1990-1234567-1" });
+  });
+  it("rejects a bare bracketed number or junk as a phone", () => {
+    expect(cleanOwner({ phone: "(6578754)" }).phone).toBeUndefined();
+    expect(cleanOwner({ phone: "call the owner" }).phone).toBeUndefined();
+    expect(cleanOwner({ email: "not an email" }).email).toBeUndefined();
   });
 });

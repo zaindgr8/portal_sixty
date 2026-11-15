@@ -1,7 +1,7 @@
 import "server-only";
 import sharp from "sharp";
 import { aiJson, type AiFile } from "./gemini";
-import { copyResponseSchema, copySchema, extractResponseSchema, extractionSchema, photoAnalysisSchema, photoResponseSchema, voiceResponseSchema, voiceSchema, type ExtractedField } from "./schema";
+import { cleanOwner, copyResponseSchema, copySchema, extractResponseSchema, extractionSchema, photoAnalysisSchema, photoResponseSchema, voiceResponseSchema, voiceSchema, type ExtractedField } from "./schema";
 import { mergeFields } from "./merge";
 import { copyFacts, withLength } from "./copy";
 import { missingQuestions } from "./questions";
@@ -9,6 +9,8 @@ import { getObject } from "./storage";
 import { addCost, getInputs, getListing, getListingRow, listMediaRows, readOwner, sealOwner, toMedia, updateInputs, updateListing, updateMedia } from "./store";
 import { loadPrompt } from "./prompts";
 import type { Listing, ListingField, Progress, Tone } from "./types";
+
+const DOC_LABEL: Record<string, string> = { title_deed: "Title deed", oqood: "Oqood", owner_id: "Owner's Emirates ID or passport" };
 
 // The AI step of a new listing. Runs as a background job; the review screen polls `progress`.
 //   1. In parallel: read Form A + documents, analyse photos, transcribe the voice note.
@@ -57,7 +59,7 @@ export async function processListing(ws: string, listingId: string) {
     for (const [i, d] of docs.entries()) {
       const buf = await getObject(ws, d.row.path as string);
       files.push(d.m.mimeType === "application/pdf" ? { data: buf, mimeType: "application/pdf", name: d.m.fileName } : await forAi(buf, d.m.mimeType, 2000));
-      labels.push(`Document ${i + 1}: ${d.m.kind === "form_a" ? "Form A / listing form" : d.m.docType ?? d.m.kind} (${d.m.fileName})`);
+      labels.push(`Document ${i + 1}: ${d.m.kind === "form_a" ? "Form A / listing form" : DOC_LABEL[d.m.docType ?? ""] ?? d.m.docType ?? d.m.kind} (${d.m.fileName})`);
     }
     versions.extract_form_a = loadPrompt("extract_form_a").version;
     const r = await aiJson({
@@ -129,7 +131,7 @@ export async function processListing(ws: string, listingId: string) {
   // ---- 3. merge ----
   await setProgress(ws, listingId, { step: "merging", label: "Checking the details…", done, startedAt: started });
   const formA = docs.find((d) => d.m.kind === "form_a")?.m.id;
-  const deed = docs.find((d) => d.m.kind === "document")?.m.id;
+  const deed = docs.find((d) => d.m.kind === "document" && d.m.docType !== "owner_id")?.m.id;
   const candidates: ExtractedField[] = [...((extraction?.fields ?? []) as ExtractedField[]), ...((voice?.facts ?? []).map((f) => ({ ...f, source: "voice" })) as ExtractedField[])];
   const merged = mergeFields(candidates, [extraction?.amenities ?? [], voice?.amenities ?? []], { form_a: formA, title_deed: deed });
 
@@ -150,7 +152,9 @@ export async function processListing(ws: string, listingId: string) {
     conf.amenities = 0.8;
     src.amenities = { source: "notes" };
   }
-  const owner = { ...(readOwner(row) ?? {}), ...Object.fromEntries(Object.entries(extraction?.owner ?? {}).filter(([, v]) => v)) };
+  // What's already saved wins (an agent may have corrected it); the documents only fill the gaps.
+  // cleanOwner also drops an earlier bad value (e.g. a title deed owner number saved as the phone).
+  const owner = { ...cleanOwner(extraction?.owner ?? {}), ...cleanOwner(readOwner(row) ?? {}) };
   patch.owner_pii = sealOwner(owner);
   patch.field_confidence = conf;
   patch.field_source = src;

@@ -15,7 +15,8 @@ export async function loadBundle(c: Ctx, id: string): Promise<ListingBundle | nu
   if (!row) return null;
   const listing = toListing(row);
   const [mediaRows, inputs, portals, methods, events, auditLog, usage] = await Promise.all([
-    listMediaRows(ws, id), getInputs(ws, id), listPortalListings(ws, id), portalMethods(ws),
+    // The owner's ID card is for admins only, like the owner's details.
+    listMediaRows(ws, id).then((rows) => (c.admin ? rows : rows.filter((r) => r.doc_type !== "owner_id"))), getInputs(ws, id), listPortalListings(ws, id), portalMethods(ws),
     c.admin ? listPortalEvents(ws, id) : Promise.resolve([]), listAudit(ws, id), listUsage(ws, id),
   ]);
   const connected = Object.keys(methods) as (keyof typeof methods)[];

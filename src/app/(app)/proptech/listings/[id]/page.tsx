@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle, ArrowLeft, CheckCircle2, ClipboardCopy, Copy, Download, Film, Loader2, Lock, RefreshCw, Send, ShieldCheck, Sparkles, Trash2, Upload, XCircle,
 } from 'lucide-react';
-import { AiProgress, ErrorBar, PortalChip, StatusChip, ago, api, usd, useBundle } from '@/components/proptech/ui';
+import { AiProgress, ErrorBar, PortalChip, StatusChip, ago, api, uploadFile, usd, useBundle } from '@/components/proptech/ui';
+import { MAX_PHOTOS, checkUpload, type UploadKind } from '@/lib/proptech/files';
 import { FieldRow, GROUPS, enumLabel } from '@/components/proptech/fields';
 import { PhotoGrid } from '@/components/proptech/photos';
 import { ManualPost } from '@/components/proptech/ManualPost';
@@ -133,6 +134,16 @@ function Owner({ b, onSave }: { b: ListingBundle; onSave: (o: Record<string, str
   );
 }
 
+const DOC_ACCEPT = 'application/pdf,image/jpeg,image/png,image/heic,image/heif,image/webp,.heic,.heif';
+const PHOTO_ACCEPT = 'image/jpeg,image/png,image/heic,image/heif,image/webp,.heic,.heif';
+const ADD_DOCS: { label: string; kind: UploadKind; docType?: string }[] = [
+  { label: 'Form A', kind: 'form_a' },
+  { label: 'Title deed', kind: 'document', docType: 'title_deed' },
+  { label: 'Oqood', kind: 'document', docType: 'oqood' },
+  { label: 'Owner ID', kind: 'document', docType: 'owner_id' },
+  { label: 'Floor plan', kind: 'floorplan' },
+];
+
 function Media({ b, reload, setError }: { b: ListingBundle; reload: () => void; setError: (m: string) => void }) {
   const id = b.listing.id;
   const photos = b.media.filter((m) => m.kind === 'photo').sort((a, z) => Number(a.removed) - Number(z.removed) || a.order - z.order);
@@ -145,15 +156,66 @@ function Media({ b, reload, setError }: { b: ListingBundle; reload: () => void; 
     ids.splice(to, 0, x);
     patch({ order: ids });
   };
+
+  // Add more files after the AI has run: more photos, a Form A that came later, a title deed…
+  const photoInput = useRef<HTMLInputElement>(null);
+  const docInput = useRef<HTMLInputElement>(null);
+  const [docTarget, setDocTarget] = useState(ADD_DOCS[0]);
+  const [progress, setProgress] = useState('');
+  const [added, setAdded] = useState(false);
+  const busy = Boolean(progress) || b.listing.status === 'processing';
+  const upload = async (list: FileList | null, kind: UploadKind, docType?: string) => {
+    let files = [...(list ?? [])];
+    if (!files.length) return;
+    if (kind === 'photo') {
+      const room = MAX_PHOTOS - live.length;
+      if (files.length > room) { setError(`Up to ${MAX_PHOTOS} photos. ${files.length - Math.max(0, room)} were left out.`); files = files.slice(0, Math.max(0, room)); }
+    }
+    const fails: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const chk = checkUpload(kind, f.name, f.size);
+      if ('error' in chk) { fails.push(chk.error); continue; }
+      setProgress(`Uploading ${i + 1} of ${files.length}…`);
+      try { await uploadFile(id, f, f.name, kind, docType ? { docType } : {}, (pct) => setProgress(`Uploading ${i + 1} of ${files.length} · ${pct}%`)); }
+      catch (e) { fails.push(`${f.name}: ${e instanceof Error ? e.message : 'upload failed'}`); }
+    }
+    setProgress('');
+    if (fails.length) setError(fails.join(' '));
+    if (fails.length < files.length) { setAdded(true); reload(); }
+  };
+  const readAgain = () => api(`/api/proptech/listings/${id}/process`, { method: 'POST', json: {} })
+    .then(() => { setAdded(false); reload(); }).catch((e: Error) => setError(e.message));
+
   return (
     <section id="media" className="card scroll-mt-24 p-4">
-      <h2 className="mb-1 font-semibold">Media <span className="font-normal text-ink-3">{live.length} photos</span></h2>
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <h2 className="font-semibold">Media <span className="font-normal text-ink-3">{live.length} photos</span></h2>
+        <button className="btn btn-primary ml-auto px-3 py-1.5 text-sm" disabled={busy || live.length >= MAX_PHOTOS} onClick={() => photoInput.current?.click()}><Upload size={14} />Add photos</button>
+      </div>
       <p className="mb-3 text-xs text-ink-3">The AI put them in a suggested order and picked a cover. Flags are warnings: portals may reject photos with watermarks or contact details.</p>
+      <input ref={photoInput} type="file" multiple accept={PHOTO_ACCEPT} className="hidden" onChange={(e) => { upload(e.target.files, 'photo'); e.target.value = ''; }} />
+      <input ref={docInput} type="file" multiple accept={DOC_ACCEPT} className="hidden" onChange={(e) => { upload(e.target.files, docTarget.kind, docTarget.docType); e.target.value = ''; }} />
+      {progress && <p className="mb-3 flex items-center gap-2 text-sm text-ink-2"><Loader2 size={14} className="animate-spin" />{progress}</p>}
       <PhotoGrid items={photos} onMove={(f, t) => move(f, t)} onCover={(pid) => patch({ cover: pid })} onRemove={(pid) => patch({ remove: pid })} onRestore={(pid) => patch({ restore: pid })} />
       {docs.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-2 text-sm">
-          {docs.map((d) => <li key={d.id}><a href={d.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 hover:border-brand"><Upload size={13} className="rotate-180" />{{ form_a: 'Form A', document: d.docType === 'oqood' ? 'Oqood' : 'Title deed', floorplan: 'Floor plan', audio: 'Voice note', photo: 'Photo' }[d.kind]}</a></li>)}
+          {docs.map((d) => <li key={d.id}><a href={d.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 hover:border-brand"><Upload size={13} className="rotate-180" />{{ form_a: 'Form A', document: d.docType === 'oqood' ? 'Oqood' : d.docType === 'owner_id' ? 'Owner ID' : 'Title deed', floorplan: 'Floor plan', audio: 'Voice note', photo: 'Photo' }[d.kind]}</a></li>)}
         </ul>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3 text-sm">
+        <span className="text-ink-3">Add a document:</span>
+        {ADD_DOCS.map((d) => (
+          <button key={d.label} className="btn px-2.5 py-1 text-xs" disabled={busy} onClick={() => { setDocTarget(d); setTimeout(() => docInput.current?.click(), 0); }}><Upload size={12} />{d.label}</button>
+        ))}
+      </div>
+      {added && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-ai-soft px-3 py-2.5 text-sm text-ai">
+          <Sparkles size={15} />
+          <span className="min-w-0 flex-1">Added. Let the AI read the new files? It fills empty fields, labels new photos and rewrites the copy. Anything you typed yourself stays as it is.</span>
+          <button className="btn btn-primary px-3 py-1.5 text-xs" onClick={readAgain}>Read new files</button>
+          <button className="btn btn-ghost px-2 py-1.5 text-xs" onClick={() => setAdded(false)}>Not now</button>
+        </div>
       )}
     </section>
   );
