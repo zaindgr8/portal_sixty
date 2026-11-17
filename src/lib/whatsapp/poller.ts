@@ -46,9 +46,13 @@ export async function syncAllWorkspaces() {
   for (const w of list) await inWorkspace(w.id, syncFromTwilio);
 }
 
-// Long-running servers (local / `next start`) check on a timer. On Vercel, timers don't
-// survive between requests, so the dashboard's own refreshes also call syncFromTwilio().
+// Long-running servers (local / `next start`) check on a timer. On Vercel, timers DO
+// survive between requests (Fluid compute keeps instances warm), so a running interval
+// keeps a function instance provisioned around the clock — in Nov 2026 this poller
+// burned 371 GB-Hrs of Fluid Provisioned Memory and paused the whole team. On Vercel
+// the timer stays off; the dashboard's own refreshes call syncFromTwilio() instead.
 export function startPoller() {
+  if (process.env.VERCEL) return;
   if (INTERVAL_MS <= 0 || g.__waPollerWs) return;
   g.__waPollerWs = setInterval(() => void syncAllWorkspaces(), INTERVAL_MS);
   void syncAllWorkspaces();
